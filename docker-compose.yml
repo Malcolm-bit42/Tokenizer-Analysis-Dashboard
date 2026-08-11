@@ -10,6 +10,7 @@ services:
       - /app/node_modules # Prevents local node_modules from overriding container
     environment:
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     tty: true
 
   backend:
