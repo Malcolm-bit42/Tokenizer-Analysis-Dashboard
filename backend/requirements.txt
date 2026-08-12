@@ -1,0 +1,16 @@
+# Web Framework & Environment
+fastapi[standard]
+python-dotenv
+pydantic
+
+# Hugging Face & Tokenization
+transformers
+tokenizers
+huggingface-hub
+
+# Data & Analytics (For FLORES / NCHLT metric batch processing)
+pandas
+numpy
+
+# HTTP Requests / Async Tools
+httpx

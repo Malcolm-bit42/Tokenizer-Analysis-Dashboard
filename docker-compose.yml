@@ -10,6 +10,7 @@ services:
       - /app/node_modules # Prevents local node_modules from overriding container
     environment:
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     tty: true
 
   backend:
@@ -20,6 +21,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     environment:
       - PYTHONUNBUFFERED=1
     tty: true
