@@ -46,12 +46,14 @@ def load_NCHLT(directory):
 #This is the effieciency metric class that calculate effiecncy metric components using the components
 class effieciency_metric:
 
-    #Uses the tokenizer object to tokenize each sentence and returns it 
-    def tokenize(self, tokenizer,language_corpus):
-        tokens = []
-        for sentence in language_corpus:
-            tokens.extend(tokenizer.tokenize(sentence))
-        return tokens
+    # Uses the tokenizer object to batch-tokenize the corpus
+    def tokenize(self, tokenizer, language_corpus):
+        encoded_batch = tokenizer(language_corpus, add_special_tokens=False)
+        # Flattens the batch of token IDs to count/inspect
+        all_ids = []
+        for ids in encoded_batch["input_ids"]:
+            all_ids.extend(ids)
+        return all_ids
 
     #Counts tokens
     def token_count(self, tokens):
@@ -70,6 +72,9 @@ class effieciency_metric:
     
     #returns compresion
     def compression(self, language_corpus,token_count):
+        if token_count == 0:
+            return 0
+        
         byte_count = 0
         #calculates the total byte of the data
         for sentence in language_corpus:
@@ -80,19 +85,17 @@ class effieciency_metric:
     #Calculates and returns the metrics data for the given language corpus and tokenezer in a json format
     def metrics(self, language_corpus, model_id: str, registry) :
             tok = registry.get_tokenizer(model_id)
-
-            # Batch tokenization: tokenizes all 997 sentences in one Rust call
-            encoded_batch = tok(language_corpus, add_special_tokens=False)
-            total_tokens = sum(len(ids) for ids in encoded_batch["input_ids"])
+            tokens = self.tokenize(tok, language_corpus)
+            token_count = self.token_count(tokens)
 
             word_count = self.word_counter(language_corpus)
-            fertility = self.fertility(total_tokens, word_count)
-            comp = self.compression(language_corpus, total_tokens)
+            fertility = self.fertility(token_count, word_count)
+            compression = self.compression(language_corpus, token_count)
 
             return {
-                "token_count": total_tokens,
+                "token_count": token_count,
                 "fertility": fertility,
-                "compression": comp,
+                "compression": compression,
             } 
 
 class linguistic_metric:
@@ -105,7 +108,8 @@ class linguistic_metric:
 
         for morpheme in morphemes[:-1]:
             position += len(morpheme)
-            binary_boundry[position - 1] = 1
+            if 0 <= position - 1 < len(binary_boundry):
+                binary_boundry[position - 1] = 1
         return binary_boundry
     #Creates a boundy map for the tokenized word in a format of 1s and 0s
     def get_tokenized_boundaries(self, word, tokens):
@@ -118,7 +122,8 @@ class linguistic_metric:
                 if token.startswith(prefix):
                     token = token[len(prefix):]
             position += len(token)
-            binary_boundry[position - 1] = 1
+            if 0 <= position - 1 < len(binary_boundry):
+                binary_boundry[position - 1] = 1
         return binary_boundry
     
     #for each actual and predictions of boundries, which are true positives, true negatives , false negatives and false positives
@@ -158,7 +163,7 @@ class linguistic_metric:
         else:
             return 0.0
         
-    def metrics(self, language_morpheme, model_id: str, registry) :
+    def metrics(self, language_morpheme, model_id: str, registry):
             tok = registry.get_tokenizer(model_id)
             
             words = []
@@ -172,38 +177,36 @@ class linguistic_metric:
             if not words:
                 return {"precision": 0.0, "recall": 0.0, "f1": 0.0}
 
-            # Batch tokenize all words in this language at once
+            # Fast batch tokenization
             encoded_batch = tok(words, add_special_tokens=False)
             
-            precisions, recalls, f1s = [], [], []
+            precisions = []
+            recalls = []
+            F1_scores = []
 
             for i, word in enumerate(words):
                 token_ids = encoded_batch["input_ids"][i]
                 tokens = tok.convert_ids_to_tokens(token_ids)
 
-                actual = self.get_morpheme_boundaries(word, morphemed_words[i])
-                pred = self.get_tokenized_boundaries(word, tokens)
+                morpheme_boundary_map = self.get_morpheme_boundaries(word, morphemed_words[i])
+                token_boundary_map = self.get_tokenized_boundaries(word, tokens)
+                tp, fp, fn, tn = self.classifying(morpheme_boundary_map, token_boundary_map)
 
-                tp = sum(1 for a, p in zip(actual, pred) if a == 1 and p == 1)
-                fp = sum(1 for a, p in zip(actual, pred) if a == 0 and p == 1)
-                fn = sum(1 for a, p in zip(actual, pred) if a == 1 and p == 0)
+                precision = self.get_precision(tp, fp)
+                recall = self.get_recall(tp, fn)
+                F1 = self.get_F1(precision, recall)
 
-                p = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-                r = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-                f1 = (2 * p * r) / (p + r) if (p + r) > 0 else 0.0
-
-                precisions.append(p)
-                recalls.append(r)
-                f1s.append(f1)
+                precisions.append(precision)
+                recalls.append(recall)
+                F1_scores.append(F1)
 
             n = len(precisions) or 1
             return {
                 "precision": round(sum(precisions) / n, 4),
                 "recall": round(sum(recalls) / n, 4),
-                "f1": round(sum(f1s) / n, 4),
+                "f1": round(sum(F1_scores) / n, 4),
             }
         
-    
 #This class recieves the tokenizer and language data, to compute metrics. 
 class tokenizer_metrics:
         
