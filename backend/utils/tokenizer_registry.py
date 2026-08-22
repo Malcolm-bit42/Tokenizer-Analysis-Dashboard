@@ -84,9 +84,32 @@ class Tokenizer:
         self.LRU_cache[model_id] = tokenizer
 
         return tokenizer
+    
+    def tokenize_text(self, model_id: str, text: str) -> Dict[str, any]:
+            # Tokenises text and returns standard results: 
+            # token strings, IDs, count, and character offsets.
 
+            tokenizer = self.get_tokenizer(model_id)
+            
+            # Check if fast tokeniser (supporting offset mapping) is available
+            if tokenizer.is_fast:
+                encoded = tokenizer(text, return_offsets_mapping=True, add_special_tokens=False)
+                token_ids = encoded["input_ids"]
+                offsets = encoded["offset_mapping"]
+            else:
+                token_ids = tokenizer.encode(text, add_special_tokens=False)
+                offsets = []  # Fallback for slow SentencePiece tokenizers
 
+            tokens = tokenizer.convert_ids_to_tokens(token_ids)
 
+            return {
+                "model_id": model_id,
+                "token_count": len(token_ids),
+                "tokens": tokens,
+                "token_ids": token_ids,
+                "offsets": offsets
+            }
+    
     def save(self, path):
         if self.tokenizer:
             self.tokenizer.save_pretrained(path)
