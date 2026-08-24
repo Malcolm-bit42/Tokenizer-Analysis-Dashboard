@@ -18,3 +18,28 @@ export async function getTokenizers() {
         throw error;
     }
 }
+
+export async function getMetrics(model_id: string) {
+    // Get all efficiency + linguistic metrics for a speific tokenizer.
+    try {
+        const res = await fetch(`${BASE_URL}/tokenizer/metrics`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model_id: model_id })});
+
+        if (!res.ok) {
+            throw new Error("Failed to fetch all metrics: " +res.status);
+        }
+
+        const data = await res.json();
+
+        return data;
+    } catch (error) {
+        console.error("An error occurred when fetching the metrics: " + error);
+        throw error;
+        
+    }
+    
+}
