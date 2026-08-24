@@ -1,6 +1,6 @@
-import json
-import os
-from pathlib import Path
+# I'm adding this comment to the topic because it kinda looks weird as hell to not have imports and shi and just start writing code from line 1
+# Kinda used to languages like Java or C with some sort of imports 
+
 
 languages_efficiency = {"afr_Latn": "Afrikaans","eng_Latn": "English","nso_Latn": "Northern Sotho","sot_Latn": "Southern Sotho","ssw_Latn": "Swati","tsn_Latn": "Tswana","tso_Latn": "Tsonga","xho_Latn": "Xhosa","zul_Latn": "Zulu"}
 languages_linguistic = {"nbl": "Isindebele", "nso": "Northern Sotho","sot": "Southern Sotho","ssw": "Swati","tsn": "Tswana","tso": "Tsonga","ven" : "Venda", "xho": "Xhosa","zul": "Zulu"}
@@ -34,14 +34,6 @@ def load_NCHLT(directory):
                 if line.strip()
             ]
     return data
-
-# BASE_DIR = Path(__file__).resolve().parent.parent  # /app (or ./backend)
-# DEV_DIR = str(BASE_DIR / "dev")
-
-
-# if __name__ == "__main__":
-#     print(load_flores(DEV_DIR))
-#     print(load_NCHLT(DEV_DIR))
 
 #This is the effieciency metric class that calculate effiecncy metric components using the components
 class effieciency_metric:
@@ -211,12 +203,28 @@ class linguistic_metric:
 class tokenizer_metrics:
         
         #initialises the tokenizer_metrics class with different data for different metrics
-        def __init__(self, model_id, registry, efficiency_data, linguistic_data):
+        # target_languages format is an array (list) of all langauges
+
+        def __init__(self, model_id, registry, efficiency_data, linguistic_data, target_languages = None):
             self.registry = registry
             self.model_id = model_id
-            self.efficiency_data = efficiency_data
-            self.linguistic_data = linguistic_data
 
+            # If target languages are specified, filter the dictionaries to only compute those
+            if target_languages:
+                self.efficiency_data = {lang: data for lang, data in efficiency_data.items() if lang in target_languages}
+                self.linguistic_data = {lang: data for lang, data in linguistic_data.items() if lang in target_languages}
+
+                # Keep English in efficiency_data if needed for token_premium calculation
+                if "English" not in self.efficiency_data and "English" in efficiency_data:
+                    self.efficiency_data["English"] = efficiency_data["English"]
+
+            else:
+                # by default, we compute metrics for all languages for thats specific dataset
+                self.efficiency_data = efficiency_data
+                self.linguistic_data = linguistic_data
+
+            self.target_languages = target_languages
+            
         #This returns a json format of effiency metric data for the default languages corpora(token count, fertility, compression, premium)
         def tokenizer_language_efficiency(self):
             effiency_calculator = effieciency_metric()
@@ -229,8 +237,17 @@ class tokenizer_metrics:
             english_token_count = tokenizer_efficiency["English"]["token_count"]
 
             #Loops over every language to calculate the premium for each language
-            for language in self.efficiency_data:
-                tokenizer_efficiency[language]["token_premium"] = tokenizer_efficiency[language]["token_count"] / english_token_count
+            if english_token_count > 0:
+                for language in self.efficiency_data:
+                    tokenizer_efficiency[language]["token_premium"] = tokenizer_efficiency[language]["token_count"] / english_token_count
+                return tokenizer_efficiency
+            
+            # If user did not ask for English in their filter, remove it before returning... 
+            # that way, we only return a clear object of the data the user reuqested
+            # this allows us to calculate the premium without actually returning the english dataset results if the user specifically did not ask for them
+            if self.target_languages and "English" not in self.target_languages and "English" in tokenizer_efficiency:
+                del tokenizer_efficiency["English"]
+
             return tokenizer_efficiency
         
         #This returns a json format of linguistic metric data for the default languages corpora data (precision, recall, F1_score)
