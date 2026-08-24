@@ -66,3 +66,5 @@ NON_GATED_TOKENIZERS = [
     "Salesforce/codegen-350M-multi",
     "Salesforce/codegen-2B-multi",
 ]
+
+LANGUAGES =  {"eng_Latn": "English","nso_Latn": "Northern Sotho","sot_Latn": "Southern Sotho","ssw_Latn": "Swati","tsn_Latn": "Tswana","tso_Latn": "Tsonga","xho_Latn": "Xhosa","zul_Latn": "Zulu"}

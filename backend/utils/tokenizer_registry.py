@@ -36,7 +36,7 @@ class Tokenizer:
                 self.preloaded[model_id] = tokenizer
             except  Exception as e:
                     print(f"Warning: Failed to preload reference model {model_id}: {e}")
-                    return None
+                    continue
                 
     def get_all_tokenizers(self):
 
@@ -47,16 +47,14 @@ class Tokenizer:
 
     def get_tokenizer(self, model_id: str)->Optional[any]:
 
-        tokenizer = None
-
         if model_id in self.preloaded:
-            tokenizer = self.preloaded[model_id]
+            return self.preloaded[model_id]
 
         if model_id in self.LRU_cache:
             self.LRU_cache.move_to_end(model_id)
-            tokenizer = self.LRU_cache[model_id]  
+            return self.LRU_cache[model_id]  
 
-        # if the tokenixer being requested has not been downloaded, download it on the fly and then add it to the LRU cache
+        # if the tokenizer being requested has not been downloaded, download it on the fly and then add it to the LRU cache
         try:
             tokenizer = AutoTokenizer.from_pretrained(
                 model_id, 

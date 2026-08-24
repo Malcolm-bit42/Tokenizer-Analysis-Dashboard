@@ -3,7 +3,7 @@ from utils.tokenizer_registry import Tokenizer
 from pydantic import BaseModel
 from utils.metrics_pipeline import load_flores, load_NCHLT, tokenizer_metrics
 from pathlib import Path
-
+from utils.constants import LANGUAGES
 
 # Create a router instance instead of an app instance
 router = APIRouter(prefix="/tokenizer", tags=["tokenizer"])
@@ -57,4 +57,12 @@ def get_metrics(request: MetricRequest):
             "linguistic": runner.tokenizer_language_linguistic()
         }
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/languages")
+def get_languages():
+    try:
+        return {"languages": LANGUAGES}
+    except Exception as e:
+        print(f"error fetching languages: " + e)
         raise HTTPException(status_code=400, detail=str(e))
