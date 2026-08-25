@@ -9,13 +9,14 @@ logging.set_verbosity_error()
 
 
 class Tokenizer:
-    def __init__(self, cache_capacity: int = 50):
+    def __init__(self, cache_capacity: int = 50, preload: bool = True):
         # self.model_id = model_id_or_path
         self.cache_capacity: int = cache_capacity
         self.preloaded: Dict[str, any] = {}
         self.LRU_cache: OrderedDict[str, any] = OrderedDict()
 
-        self._load_tokenizer()
+        if preload:
+            self._load_tokenizer()
 
         
 

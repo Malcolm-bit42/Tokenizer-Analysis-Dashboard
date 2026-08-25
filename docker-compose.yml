@@ -28,6 +28,7 @@ services:
         - PYTHONUNBUFFERED=1
         - HF_HOME=/root/.cache/huggingface
         - HF_TOKEN=${HF_TOKEN:-} 
+      restart: unless-stopped
       tty: true
 
   precompute:

@@ -12,7 +12,10 @@ OUTPUT_FILE = BASE_DIR / "data" / "precomputed_metrics.json"
 def run_precomputation():
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     
-    registry = Tokenizer(cache_capacity=len(NON_GATED_TOKENIZERS))
+    # preload=False: don't bulk-load all tokenizers into memory.
+    # cache_capacity=2: only keep ~2 tokenizers in memory at a time, evicting old ones.
+    # This keeps memory low so the precompute service doesn't starve the API server.
+    registry = Tokenizer(cache_capacity=2, preload=False)
     flores_data = load_flores(str(DEV_DIR))
     nchlt_data = load_NCHLT(str(DEV_DIR))
     
