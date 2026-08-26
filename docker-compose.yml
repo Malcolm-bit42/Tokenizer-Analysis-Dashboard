@@ -22,12 +22,38 @@ services:
       volumes:
         - ./backend:/app
         - ./backend/dev:/app/dev
-        - hf_cache:/root/.cache/huggingface # Persists downloaded tokenizers
+        - hf_cache:/root/.cache/huggingface # Persists downloaded tokenisers
       command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
       environment:
         - PYTHONUNBUFFERED=1
         - HF_HOME=/root/.cache/huggingface
+        - HF_TOKEN=${HF_TOKEN:-} 
+      restart: unless-stopped
       tty: true
+
+  precompute:
+      build:
+        context: ./backend
+        dockerfile: Dockerfile
+      volumes:
+        - ./backend:/app
+        - ./backend/dev:/app/dev
+        - hf_cache:/root/.cache/huggingface
+      command: >
+        sh -c "
+          echo '[cron] Precompute service started';
+          while true; do
+            echo '[cron] Running precompute at $$(date)';
+            python3 precompute.py;
+            echo '[cron] Next run in 24 hours...';
+            sleep 86400;
+          done
+        "
+      environment:
+        - PYTHONUNBUFFERED=1
+        - HF_HOME=/root/.cache/huggingface
+        - HF_TOKEN=${HF_TOKEN:-}
+      restart: unless-stopped
 
 volumes:
   hf_cache: # Declares persistent volume on host machine

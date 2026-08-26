@@ -9,13 +9,14 @@ logging.set_verbosity_error()
 
 
 class Tokenizer:
-    def __init__(self, cache_capacity: int = 50):
+    def __init__(self, cache_capacity: int = 50, preload: bool = True):
         # self.model_id = model_id_or_path
         self.cache_capacity: int = cache_capacity
         self.preloaded: Dict[str, any] = {}
         self.LRU_cache: OrderedDict[str, any] = OrderedDict()
 
-        self._load_tokenizer()
+        if preload:
+            self._load_tokenizer()
 
         
 
@@ -36,7 +37,7 @@ class Tokenizer:
                 self.preloaded[model_id] = tokenizer
             except  Exception as e:
                     print(f"Warning: Failed to preload reference model {model_id}: {e}")
-                    return None
+                    continue
                 
     def get_all_tokenizers(self):
 
@@ -47,16 +48,14 @@ class Tokenizer:
 
     def get_tokenizer(self, model_id: str)->Optional[any]:
 
-        tokenizer = None
-
         if model_id in self.preloaded:
-            tokenizer = self.preloaded[model_id]
+            return self.preloaded[model_id]
 
         if model_id in self.LRU_cache:
             self.LRU_cache.move_to_end(model_id)
-            tokenizer = self.LRU_cache[model_id]  
+            return self.LRU_cache[model_id]  
 
-        # if the tokenixer being requested has not been downloaded, download it on the fly and then add it to the LRU cache
+        # if the tokenizer being requested has not been downloaded, download it on the fly and then add it to the LRU cache
         try:
             tokenizer = AutoTokenizer.from_pretrained(
                 model_id, 
