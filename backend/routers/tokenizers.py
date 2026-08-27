@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from utils.tokenizer_registry import Tokenizer
+from utils.tokenizer_registry import TokenizerRegistry
 from pydantic import BaseModel
 from utils.metrics_pipeline import load_flores, load_NCHLT, tokenizer_metrics
 from pathlib import Path
@@ -14,7 +14,7 @@ import json
 # Create a router instance instead of an app instance
 router = APIRouter(prefix="/tokenizer", tags=["tokenizer"])
 
-tokenizer_registry = Tokenizer(cache_capacity=50)
+tokenizer_registry = TokenizerRegistry(cache_capacity=50)
 
 # Load data files once on startup
 # get absoulte path relative to teh container or physical machine - wherever the program is running
@@ -47,7 +47,7 @@ def read_tokenizers():
         "tokenizers": t
     }
 
-@router.post("/preview")
+@router.post("/tokenize")
 def preview_tokenization(request: TokenizeRequest):
     try:
         return tokenizer_registry.tokenize_text(request.model_id, request.text)
@@ -66,17 +66,27 @@ def preview_tokenization(request: TokenizeRequest):
 @router.get("/metrics")
 def get_metrics(model_id: str, languages = None, metric_type: Optional[Literal["all", "efficiency", "linguistic"]] = "all"):
     cached_data = read_cache()
-    target_languages = [l.strip() for l in languages.split(",")] if languages else None # we're extracting the langues from the url query params
+    target_languages = [] if languages else None 
+
+    # we're extracting the langues from the url query params
+    for language in languages.split(","):
+        target_languages.append(language.strip())
+
 
     # 1. HIT: Retrieve precomputed metrics from JSON cache
+    # There was a bug fix here. I created a new dict as to not modify the cache in memory.
     if model_id in cached_data:
-        metrics = cached_data[model_id]
+        cache =  cached_data[model_id]
+        metrics ={}
 
-    # Filter by language if requested
-    if target_languages:
-                for metric in ("efficiency", "linguistic"):
-                    if metric in metrics:
-                        metrics[metric] = { lang: data for lang, data in metrics[metric].items() if lang in target_languages}
+        # Filter by language if requested
+        if target_languages:
+                    
+                    for metric in ("efficiency", "linguistic"):
+                        if metric in cache:
+                            metrics[metric] = { lang: data for lang, data in cache[metric].items() if lang in target_languages}
+        else:
+            metrics = cache
     else:
         # 2. MISS, ths is not in cache: Compute metrics on the fly
         try:
@@ -117,3 +127,31 @@ def get_languages():
     except Exception as e:
         print(f"error fetching languages: " + e)
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/summary")
+def get_summary():
+    cached_data = read_cache()
+    summary = []
+
+    for key, val in cached_data.items():
+        efficieny_data = val.get("efficiency", {})
+        linguistic_data = val.get("linguistic", {})
+
+        fertilities = []
+        f1s= []
+
+        for value in efficieny_data.values():
+            fertilities.append(value["fertility"])
+
+        for value in linguistic_data.values():
+            f1s.append(value["f1"])
+
+        summary.append({
+            "model_id": key,
+            "avg_fetility": sum(fertilities)/len(fertilities) if len(fertilities) != 0 else 0,
+            "avg_f1": sum(f1s)/len(f1s) if len(f1s) != 0 else 0
+        })
+
+    return {
+        "models": summary
+    }
