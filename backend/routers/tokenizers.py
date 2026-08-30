@@ -137,19 +137,38 @@ def get_summary():
         efficieny_data = val.get("efficiency", {})
         linguistic_data = val.get("linguistic", {})
 
+        # efficienccy
         fertilities = []
+        compressions=[]
+        # premiums=[]
+
+        #linguistic
         f1s= []
+        precisions=[]
+        recalls = []
+
 
         for value in efficieny_data.values():
             fertilities.append(value["fertility"])
+            compressions.append(value["compression"])
+            # premiums.append(value["premium"])
+
 
         for value in linguistic_data.values():
             f1s.append(value["f1"])
+            precisions.append(value["precision"])
+            recalls.append(value["recall"])
+
 
         summary.append({
             "model_id": key,
             "avg_fetility": sum(fertilities)/len(fertilities) if len(fertilities) != 0 else 0,
-            "avg_f1": sum(f1s)/len(f1s) if len(f1s) != 0 else 0
+            "avg_compression": sum(compressions) /len(compressions) if len(compressions) != 0 else 0,
+            # "avg_premium": sum(premiums)/ len(premiums) if len(premiums) != 0 else 0,
+            "avg_f1": sum(f1s)/len(f1s) if len(f1s) != 0 else 0,
+            "avg_precision": sum(precisions)/len(precisions) if len(precisions) !=0 else 0,
+            "avg_recall": sum(recalls)/len(recalls) if len(recalls) != 0 else 0
+
         })
 
     return {
