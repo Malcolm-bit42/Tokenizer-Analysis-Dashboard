@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import RootLayout from "./root-layout";
-import { Compare, Inpsect, LeaderBoard } from "./routes";
+import { Compare, Inpsect, LeaderBoard, NotFound } from "./routes";
 
 function App(): React.ReactElement {
   return (
@@ -14,6 +14,7 @@ function App(): React.ReactElement {
           <Route path="/leaderboard" element={<LeaderBoard />} />
 
         </Route>
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </>

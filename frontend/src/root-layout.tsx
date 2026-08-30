@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from "react-router";
 import { Hero } from "./components/hero";
 import { Nav } from "./components/nav";
-import { DropDown } from "./components/dropdown";
 // Every common component should be placed here, etc, navbar, footer, etc..
 
 const RootLayout: React.FC = (): React.ReactElement => {

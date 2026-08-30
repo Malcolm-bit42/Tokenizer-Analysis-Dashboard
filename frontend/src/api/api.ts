@@ -1,4 +1,4 @@
-import type { languages_t, metric_t, MetricsResponse, TokenizeResponse } from "../utils/types";
+import type { languages_t, metric_t, MetricsResponse, ModelSummary, TokenizeResponse } from "../utils/types";
 
 const BASE_URL: string = 'http://localhost:8000';
 
@@ -61,7 +61,7 @@ export async function tokeniseText(model_id: string, text: string): Promise<Toke
 
 }
 
-export async function getModelSummary() {
+export async function getModelSummary(): Promise<ModelSummary> {
 
     const res = await fetch(`${BASE_URL}/tokenizer/summary`);
 

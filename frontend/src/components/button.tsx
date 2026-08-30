@@ -8,13 +8,14 @@ interface IButton {
     action: (e: any) => any;
     icon?: string | any;
     disabled?: boolean;
+    className?: string;
 }
 
 
-export const Button: React.FC<IButton> = ({ fill = "bg-charcoal", color = "text-panel", text, action, icon, disabled=false }) => {
+export const Button: React.FC<IButton> = ({ fill = "bg-charcoal", color = "text-panel", text, action, icon, disabled=false, className="" }) => {
     return (
         <>
-            <button className={`${fill} ${color} flex items-center gap-2 font-bold rounded-3xl border-solid px-[1rem] py-[.75rem] text-[13px] cursor-pointer `} onClick={action} disabled={disabled}>
+            <button className={`${fill} ${color} flex items-center gap-2 font-bold rounded-3xl border-solid px-[1rem] py-[.75rem] text-[13px] cursor-pointer ` + className} onClick={action} disabled={disabled}>
                 {icon && icon}
                 {text}
             </button>
