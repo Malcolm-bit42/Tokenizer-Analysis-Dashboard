@@ -8,7 +8,7 @@ from typing import Dict, Optional
 logging.set_verbosity_error()
 
 
-class TokenizerRegistry:
+class Tokenizer:
     def __init__(self, cache_capacity: int = 50, preload: bool = True):
         # self.model_id = model_id_or_path
         self.cache_capacity: int = cache_capacity
@@ -36,9 +36,19 @@ class TokenizerRegistry:
 
                 self.preloaded[model_id] = tokenizer
             except  Exception as e:
-                    print(f"Warning: Failed to preload reference model {model_id}: {e}")
+                    tokenizer = AutoTokenizer.from_pretrained(
+                        use_fast=True, 
+                        # Forces HF to load strictly from disk without pinging the web, speeds up the operations. 
+                        # # Without this, it'll take ~1-3mins to get up and running when we change a file
+                        local_files_only=False,
+                        trust_remote_code=False,
+                        pretrained_model_name_or_path=model_id
+                    )
+
+                    self.preloaded[model_id] = tokenizer
+                        
                     continue
-                
+                    
     def get_all_tokenizers(self):
 
         # join the LUR cahce and the preloaed tokenizers and add all yhe keys to the set
