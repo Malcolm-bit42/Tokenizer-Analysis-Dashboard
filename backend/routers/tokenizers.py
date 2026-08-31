@@ -14,7 +14,7 @@ import json
 # Create a router instance instead of an app instance
 router = APIRouter(prefix="/tokenizer", tags=["tokenizer"])
 
-tokenizer_registry = TokenizerRegistry(cache_capacity=50)
+tokenizer_registry = TokenizerRegistry(cache_capacity=5)
 
 # Load data files once on startup
 # get absoulte path relative to teh container or physical machine - wherever the program is running
