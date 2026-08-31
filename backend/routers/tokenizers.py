@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from utils.tokenizer_registry import TokenizerRegistry
+from utils.tokenizer_registry import Tokenizer
 from pydantic import BaseModel
 from utils.metrics_pipeline import load_flores, load_NCHLT, tokenizer_metrics
 from pathlib import Path
@@ -14,7 +14,7 @@ import json
 # Create a router instance instead of an app instance
 router = APIRouter(prefix="/tokenizer", tags=["tokenizer"])
 
-tokenizer_registry = TokenizerRegistry(cache_capacity=5)
+tokenizer_registry = Tokenizer(cache_capacity=50)
 
 # Load data files once on startup
 # get absoulte path relative to teh container or physical machine - wherever the program is running
