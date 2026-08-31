@@ -10,8 +10,8 @@ import os
 logging.set_verbosity_error()
 
 
-class Tokenizer:
-    def __init__(self, cache_capacity: int = 50, preload: bool = True):
+class TokenizerRegistry:
+    def __init__(self, cache_capacity: int = 3, preload: bool = True):
         # self.model_id = model_id_or_path
         self.cache_capacity: int = cache_capacity
         self.preloaded: Dict[str, any] = {}

@@ -89,3 +89,4 @@ def test_tokenize_invalid_model_returns_400(client):
     response = client.post("/tokenizer/tokenize",json={"model_id": "blahblahblah/model", "text": "hello"},)
     assert response.status_code == 400
     assert "Unable to load tokenizer  blahblahblah/model: blahblahblah/model is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'\nIf this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`" in response.json()["detail"]
+    
