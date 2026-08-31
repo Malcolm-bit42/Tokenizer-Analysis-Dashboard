@@ -4,18 +4,20 @@ from utils.constants import NON_GATED_TOKENIZERS
 from huggingface_hub.utils import RepositoryNotFoundError, EntryNotFoundError, GatedRepoError
 from collections import OrderedDict
 from typing import Dict, Optional
+import gc
+import os
 
 logging.set_verbosity_error()
 
 
 class TokenizerRegistry:
-    def __init__(self, cache_capacity: int = 50, preload: bool = True):
+    def __init__(self, cache_capacity: int = 3, preload: bool = True):
         # self.model_id = model_id_or_path
         self.cache_capacity: int = cache_capacity
         self.preloaded: Dict[str, any] = {}
         self.LRU_cache: OrderedDict[str, any] = OrderedDict()
 
-        if preload:
+        if preload and not os.getenv("PYTEST_CURRENT_TEST"):
             self._load_tokenizer()
 
         
@@ -72,12 +74,16 @@ class TokenizerRegistry:
             # how will we eventually let the user know one the request has been granted - we'll return to this at a ;later stahe
             raise PermissionError("Model" + model_id + " is gated and requires authentication.")
         except Exception as e:
-            raise RuntimeError("Unable to load tokenizer  "+ model_id +": " + e)
+            raise RuntimeError("Unable to load tokenizer  "+ model_id +": " + str(e))
 
 
         # remove oldest item from the LRU cache once it has exceeded its capacity
         if len(self.LRU_cache) >= self.cache_capacity:
-            self.LRU_cache.popitem(last=False)
+            evicted_tokenizer = self.LRU_cache.popitem(last=False)
+
+            del evicted_tokenizer
+    
+            gc.collect()     
 
         # insert the new item into the LRU cache
         self.LRU_cache[model_id] = tokenizer
