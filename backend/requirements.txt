@@ -16,3 +16,4 @@ numpy
 
 # HTTP Requests / Async Tools
 httpx
+pytest

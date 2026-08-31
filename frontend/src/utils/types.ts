@@ -37,7 +37,10 @@ export interface TokenizeResponse {
 export interface ModelSummary {
   model_id: string;
   avg_fertility: number;
+  avg_compression: number;
   avg_f1: number;
+  avg_precision: number;
+  avg_recall: number
 }
 
 /* ─── Language metadata ─── */
