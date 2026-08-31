@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from "react-router";
-import { Button } from "./components/button";
 import { Hero } from "./components/hero";
-import { Nav } from "./nav";
+import { Nav } from "./components/nav";
 // Every common component should be placed here, etc, navbar, footer, etc..
 
 const RootLayout: React.FC = (): React.ReactElement => {
@@ -26,12 +25,14 @@ const RootLayout: React.FC = (): React.ReactElement => {
 
   }
 
+  const a: string[] = ["Paul Model Test 1", "test", "test again", "testity test"]
 
   return (
     <>
-      <main>
-        <Nav />
+      <Nav />
+      <main className="px-30">
         <Hero pageName={getPageTitle(path)}/>
+        {/* <DropDown options={a} placeholder="Language" multiple={false}/> */}
         {/* <Button text="Buttonlkfihwfihhdwh Vjdhd" action={(e) => alert("Hello World")}  /> */}
         <Outlet />
       </main>

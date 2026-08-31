@@ -1,14 +1,28 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
+
 import react from '@vitejs/plugin-react'
+
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  server: {
-    host: true, // Listen on all network interfaces
-    port: 5173,
-    watch: {
-      usePolling: true, // Needed for hot-reloading inside Docker volumes
+
+    plugins: [react(), tailwindcss()],
+
+    server: {
+
+        host: true,
+        port: 5173,
+
+        watch: {
+            usePolling: true,
+        },
+
     },
-  },
+
+    test: {
+        environment: "jsdom",
+        globals: true,
+        setupFiles: "./src/test/setup.ts"
+    }
+
 })

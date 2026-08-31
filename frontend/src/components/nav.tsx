@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { Button } from "./components/button";
+import { Button } from "./button";
 
 export const Nav = () => {
     return (
-        <nav className="flex justify-between items-center px-[4rem] py-2 text-sm border-b-[.1px] border-b-[#bbb]">
+        <nav className="flex justify-between items-center py-2 text-sm border-b-[.1px] border-b-[#bbb] px-30">
             <section className="flex gap-5 text-muted">
                 <Link to={"/"}>
                     Inspect

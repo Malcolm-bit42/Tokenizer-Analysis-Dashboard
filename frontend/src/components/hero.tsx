@@ -1,5 +1,6 @@
 import { Button } from "./button";
 import { Document } from "./icons/document";
+import { Dot } from "./icons/dot";
 import { Star } from "./icons/star";
 
 interface IHero {
@@ -8,11 +9,11 @@ interface IHero {
 export const Hero: React.FC<IHero> = ({ pageName }) => {
     return (
         <>
-            <section className="flex items-end justify-between mt-10 px-[4rem] gap-10">
+            <section className="flex items-end justify-between my-20 gap-10">
 
-                <div className="flex flex-col gap-10 justify-between items-start w-[50%]">
-                    <p className="section-label">
-                        South African language benchmark · {new Date().getFullYear()}
+                <div className="flex flex-col gap-7 justify-between items-start w-[50%]">
+                    <p className="section-label flex items-center gap-2">
+                      <Dot color="#e45a3b"/>  South African language benchmark · {new Date().getFullYear()}
                     </p>
 
                     <div className="flex flex-col text-6xl md:text-7xl font-black tracking-tighter leading-[1.05]">
