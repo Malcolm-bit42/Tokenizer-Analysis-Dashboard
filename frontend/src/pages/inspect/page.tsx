@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getLanguages, getMetrics, getTokenizers } from "../../api/api";
-import type { MetricsResponse } from "../../utils/types";
+import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
+import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
 
 export default function Inpsect() {
     // ─── Tokenizer dropdown state ───
@@ -13,11 +13,18 @@ export default function Inpsect() {
 
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    
+
+    // ─── Metrics state ───
     const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
     const [metricsLoading, setMetricsLoading] = useState<boolean>(false);
     const [metricsError, setMetricsError] = useState<string | null>(null);
 
+    // ─── Tokenize preview state (separate box, own tokenizer selection) ───
+    const [previewTokenizer, setPreviewTokenizer] = useState<string>("");
+    const [previewText, setPreviewText] = useState<string>("");
+    const [previewResult, setPreviewResult] = useState<TokenizeResponse | null>(null);
+    const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+    const [previewError, setPreviewError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -40,6 +47,7 @@ export default function Inpsect() {
                 // Default to the first tokenizer once options arrive
                 if (tokenizerList.length > 0) {
                     setSelectedTokenizer(tokenizerList[0]);
+                    setPreviewTokenizer(tokenizerList[0]);
                 }
 
                 // Default to all languages selected
@@ -59,14 +67,17 @@ export default function Inpsect() {
             cancelled = true;
         };
     }, []);
-    
+
+    // ─── Fetch metrics whenever tokenizer or selected languages change ───
     useEffect(() => {
-        if (!selectedTokenizer || selectedLanguages.length == 0){
+        if (!selectedTokenizer || selectedLanguages.length === 0) {
             setMetrics(null);
             return;
         }
+
         let cancelled = false;
-        async function  loadMetrics(){
+
+        async function loadMetrics() {
             setMetricsLoading(true);
             setMetricsError(null);
 
@@ -74,23 +85,57 @@ export default function Inpsect() {
                 const languageNames = selectedLanguages
                     .map((code) => languages[code])
                     .filter((name): name is string => Boolean(name));
-                const result = await getMetrics(selectedTokenizer, languageNames, "all")
-                if (!cancelled) setMetrics(result); 
+
+                const result = await getMetrics(selectedTokenizer, languageNames, "all");
+                if (!cancelled) setMetrics(result);
             } catch (err) {
-                if (!cancelled){
-                    setMetricsError(err instanceof Error ? err.message : "Failed to load  Metrics.");
+                if (!cancelled) {
+                    setMetricsError(err instanceof Error ? err.message : "Failed to load metrics.");
                     setMetrics(null);
                 }
             } finally {
                 if (!cancelled) setMetricsLoading(false);
             }
         }
+
         loadMetrics();
 
         return () => {
             cancelled = true;
         };
     }, [selectedTokenizer, selectedLanguages, languages]);
+
+    // ─── Tokenize preview: debounced call whenever tokenizer or text changes ───
+    useEffect(() => {
+        if (!previewTokenizer || previewText.trim().length === 0) {
+            setPreviewResult(null);
+            setPreviewError(null);
+            return;
+        }
+
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            setPreviewLoading(true);
+            setPreviewError(null);
+
+            try {
+                const result = await tokeniseText(previewTokenizer, previewText);
+                if (!cancelled) setPreviewResult(result);
+            } catch (err) {
+                if (!cancelled) {
+                    setPreviewError(err instanceof Error ? err.message : "Failed to tokenize text.");
+                    setPreviewResult(null);
+                }
+            } finally {
+                if (!cancelled) setPreviewLoading(false);
+            }
+        }, 400); // debounce so we don't hit the API on every keystroke
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [previewTokenizer, previewText]);
 
     const toggleLanguage = (code: string) => {
         setSelectedLanguages((prev) =>
@@ -168,7 +213,7 @@ export default function Inpsect() {
                     </div>
                 )}
             </div>
-            
+
             {/* ─── Metrics ─── */}
             <div className="flex flex-col gap-3 mt-4">
                 <p className="section-label">Metrics</p>
@@ -254,7 +299,94 @@ export default function Inpsect() {
                     </div>
                 )}
             </div>
-             
+
+            {/* ─── Tokenize Preview ─── */}
+            <div className="card flex flex-col gap-5 p-6 mt-4 mb-14">
+                <p className="section-label">Tokenize Preview</p>
+
+                <div className="flex flex-col md:flex-row gap-4">
+                    {/* Tokenizer dropdown for this box */}
+                    <div className="flex flex-col gap-2 w-full md:w-[280px]">
+                        <label htmlFor="preview-tokenizer-select" className="text-xs font-medium text-muted">
+                            Tokenizer
+                        </label>
+                        <select
+                            id="preview-tokenizer-select"
+                            value={previewTokenizer}
+                            onChange={(e) => setPreviewTokenizer(e.target.value)}
+                            className="bg-canvas text-charcoal text-sm font-medium px-4 py-3 rounded-[var(--radius-card)] border border-soft-border cursor-pointer outline-none appearance-none"
+                            disabled={tokenizers.length === 0}
+                        >
+                            {tokenizers.length === 0 && (
+                                <option value="">No tokenizers available</option>
+                            )}
+                            {tokenizers.map((model_id) => (
+                                <option key={model_id} value={model_id}>
+                                    {model_id}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Text input */}
+                    <div className="flex flex-col gap-2 w-full">
+                        <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
+                            Text
+                        </label>
+                        <textarea
+                            id="preview-text-input"
+                            value={previewText}
+                            onChange={(e) => setPreviewText(e.target.value)}
+                            placeholder="Type or paste text to see how the tokenizer splits it..."
+                            rows={3}
+                            className="bg-canvas text-charcoal text-sm px-4 py-3 rounded-[var(--radius-card)] border border-soft-border outline-none resize-none"
+                        />
+                    </div>
+                </div>
+
+                {previewError && (
+                    <p className="text-sm text-[color:var(--color-bad)]">
+                        {previewError}
+                    </p>
+                )}
+
+                {/* Dark token preview panel */}
+                <div className="card-dark p-5 min-h-[120px] flex flex-col gap-4">
+                    {previewText.trim().length === 0 ? (
+                        <p className="text-sm text-[color:var(--color-dark-muted)]">
+                            Enter some text above to see its tokens.
+                        </p>
+                    ) : previewLoading ? (
+                        <div className="flex flex-wrap gap-2">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <div key={i} className="skeleton h-[28px] w-[60px]" />
+                            ))}
+                        </div>
+                    ) : previewResult ? (
+                        <>
+                            <p className="text-xs font-mono uppercase tracking-wide text-[color:var(--color-dark-muted)]">
+                                {previewResult.token_count} tokens · {previewResult.model_id}
+                            </p>
+
+                            <div className="flex flex-wrap gap-2">
+                                {previewResult.tokens.map((token, i) => (
+                                    <span
+                                        key={i}
+                                        title={`id: ${previewResult.token_ids[i]}`}
+                                        className={`font-mono text-xs px-2 py-1 rounded-md border border-[color:var(--color-dark-surface)] ${
+                                            i % 2 === 0
+                                                ? "bg-[color:var(--color-dark-surface)] text-panel"
+                                                : "bg-transparent text-panel"
+                                        }`}
+                                    >
+                                        {token}
+                                    </span>
+                                ))}
+                            </div>
+                        </>
+                    ) : null}
+                </div>
+            </div>
         </section>
     );
 }
