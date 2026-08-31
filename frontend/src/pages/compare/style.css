@@ -1,0 +1,127 @@
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    color: black;
+    border: 1px solid #d1d5db;
+    width: 50%;
+}
+
+.metrics-table th,
+.metrics-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.metrics-table th:first-child,
+.metrics-table td:first-child {
+    text-align: left;
+}
+
+.metrics-table thead {
+    background: #f3f4f6;
+}
+
+.metrics-table thead th {
+    font-weight: 600;
+}
+
+.metrics-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.metrics-section {
+    background: #e5e7eb;
+    font-weight: 600;
+    text-align: left !important;
+}
+
+.submit-button {
+    background-color: black;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.submit-button:hover {
+    background-color: #333333;
+}
+
+.tokenizer-select,
+.language-select {
+    width: 70%;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+
+    background-color: #f4f4f5;
+    color: #18181b;
+
+    border: 2px solid #27272a;
+    border-radius: 14px;
+
+    font-size: 15px;
+    cursor: pointer;
+
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.tokenizer-select:hover,
+.language-select:hover {
+    background-color: #e4e4e7;
+}
+
+.tokenizer-select:focus,
+.language-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.tokenizer-container {
+    width: 70%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 0px;
+}
+
+.language-container {
+    margin-top: 5px;
+}
+
+.tokenized-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.tokenized-box {
+    border: 2px solid #27272a;
+    border-radius: 16px;
+    background-color: #f4f4f5;
+    overflow: hidden;
+}
+
+.tokenized-title {
+    background-color: #18181b;
+    color: white;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #27272a;
+}
+
+.tokenized-content {
+    min-height: 150px;
+    padding: 16px;
+    background-color: white;
+    color: black;
+    line-height: 2;
+}
