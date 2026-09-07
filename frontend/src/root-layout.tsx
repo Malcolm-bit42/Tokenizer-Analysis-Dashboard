@@ -27,9 +27,10 @@ const RootLayout: React.FC = (): React.ReactElement => {
 
   const a: string[] = ["Paul Model Test 1", "test", "test again", "testity test"]
 
+
   return (
     <>
-      <Nav />
+      <Nav path={path} />
       <main className="px-30">
         <Hero pageName={getPageTitle(path)}/>
         {/* <DropDown options={a} placeholder="Language" multiple={false}/> */}

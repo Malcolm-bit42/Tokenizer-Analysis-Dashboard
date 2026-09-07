@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react"
-import { getModelSummary, getTokenizers } from "../../api/api";
+import { getLanguages, getModelSummary, getTokenizers } from "../../api/api";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
 import type { ModelSummary } from "../../utils/types";
 import { Arrow } from "../../components/icons/arrow";
+import { Dot } from "../../components/icons/dot";
 
 const KEY:string = "tad-selected-models";
+const HIDDEN_METRICS_KEY: string = "tad-hidden-metrics";
+export type metric_t = "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall";
+
 
 function loadSavedModels(): string[] {
     // this method will store the models the user has selected - pretty much a way tp store current leaderboard state
@@ -21,15 +25,36 @@ function saveModels(models: string[]): void {
     localStorage.setItem(KEY, JSON.stringify(models));
 }
 
+function loadHiddenMetrics(): metric_t[] {
+    try {
+        const saved = localStorage.getItem(HIDDEN_METRICS_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHiddenMetrics(metrics: metric_t[]): void {
+    localStorage.setItem(HIDDEN_METRICS_KEY, JSON.stringify(metrics));
+}
+
+const availableMetrics: { id: metric_t, label: string }[] = [
+    { id: "avg_fertility", label: "Avg. Fertility" },
+    { id: "avg_compression", label: "Avg. Compression" },
+    { id: "avg_precision", label: "Avg. Precision" },
+    { id: "avg_f1", label: "Avg. F1" },
+    { id: "avg_recall", label: "Avg. Recall" }
+];
 
 export default function Compare () {
-    type metric_t = "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall"
     const [tokenizerModels, setTokenizerModels] = useState<string[]>([]);
+    const [hiddenMetrics, setHiddenMetrics] = useState<metric_t[]>(loadHiddenMetrics);
     const [metrics, setMetrics] = useState<ModelSummary[]>([]);
     const [addedTokenisers, setAddedTokenisers] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState<metric_t | "model_id">("avg_fertility");
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
+    const [ languages, setLanguages ] = useState<any[]>([]);
 
     useEffect(() => {
 
@@ -38,10 +63,13 @@ export default function Compare () {
            if (tokenizers.length > 0) setSelectedTokenizer(tokenizers[0]);
        }).catch((error) => console.error("Error fetching tokenizers: " + error));
 
+       getLanguages().then((languages) => {
+            setLanguages(Object.values(languages));
+       }).catch(err => console.error(err))
+
 
        getModelSummary().then((data: ModelSummary[] | any) => {
            setMetrics(data);
-
            const saved = loadSavedModels();
 
            if (saved.length > 0) {
@@ -55,7 +83,15 @@ export default function Compare () {
 
     }, []);
 
-    const tableColumns: string[] = ["#", "Tokenizer", "Avg. Fertility", "Avg. Compression", "Avg. F1", "Avg. Precision", "Avg. Recall", ""];
+    const tableColumns: string[] = ["#", "Tokenizer", ...availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map(m => m.label), ""];
+
+    const toggleMetric = (metricId: metric_t) => {
+        setHiddenMetrics(prev => {
+            const next = prev.includes(metricId) ? prev.filter(m => m !== metricId) : [...prev, metricId];
+            saveHiddenMetrics(next);
+            return next;
+        });
+    }
 
         const handleSort = (metric: metric_t | "model_id") => {
             if (sortBy === metric) {
@@ -112,21 +148,32 @@ export default function Compare () {
         saveModels(newAdded);
     }
 
+    // be able to filter metrics summary based on langauge?? doe sit returnn the avg of all?? hmmmm.
+
     return (
         <>
             <section className="w-full">
                 <div className="flex gap-3 bg-[#EBE9E4] p-3 rounded-lg mb-10">
                     <DropDown options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
+                    <DropDown options={languages} placeholder="Select a Language" />
                     <Button action={handleAddTokenizer} text="+ Add tokenizer" className="!rounded-lg"/>
+
+                </div>
+                <div className="flex gap-5 mb-10">
+                    {
+                        availableMetrics.map(metric => (
+                            <Button className="!text-[11px] !px[.5rem] !py-[.5rem]" icon={<Dot color={["#22a06b", "#e45a3b", "#d97706", "#2563eb"][Math.floor(Math.random() * 4)] as string} />} key={metric.id} text={metric.label} action={() => toggleMetric(metric.id)} disabled={hiddenMetrics.includes(metric.id)}/>
+                        ))
+                    }
                 </div>
                 <table className="w-full border-[.1px] border-[#ddd] mb-10 ">
                     <thead className="">
                         <tr className="section-label">
                             {
-                                tableColumns.map((column: string, index: number) => {
+                                tableColumns.map((column: string, _: number) => {
                                     const metricKey = getMetricKey(column);
                                     return (
-                                        <td key={index} className="py-5 px-3 cursor-pointer" onClick={() => {if (metricKey) handleSort(metricKey);}}>
+                                        <td key={column} className="py-5 px-3 cursor-pointer" onClick={() => {if (metricKey) handleSort(metricKey);}}>
                                             <p className="flex gap-3 items-center">
                                             {sortIndicator(metricKey)}
                                             {column}
@@ -143,8 +190,13 @@ export default function Compare () {
                               displayData.map((data: ModelSummary, index: number) => (
                                     <tr key={data.model_id} className="text-charcoal border-b-[.1px] border-b-[#ddd]">
                                         <td className="py-3 pl-8">{index + 1}</td>
+                                        <td className="p-3">{data.model_id}</td>
                                         {
-                                            Object.values(data).map((data) => <td key={data.model_id} className="p-3">{data}</td>)
+                                            availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map((metric) => (
+                                                    <td key={metric.id} className="p-3">
+                                                        {data[metric.id as keyof ModelSummary] as string}
+                                                    </td>
+                                                ))
                                         }
                                         <td className="py-3 px-0">
                                             <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
