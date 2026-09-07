@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
-import { getModelSummary, getTokenizers } from "../../api/api";
+import { getLanguages, getModelSummary, getTokenizers } from "../../api/api";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
 import type { ModelSummary } from "../../utils/types";
 import { Arrow } from "../../components/icons/arrow";
+import { Dot } from "../../components/icons/dot";
 
 const KEY:string = "tad-selected-models";
 const HIDDEN_METRICS_KEY: string = "tad-hidden-metrics";
@@ -53,6 +54,7 @@ export default function Compare () {
     const [sortBy, setSortBy] = useState<metric_t | "model_id">("avg_fertility");
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
+    const [ languages, setLanguages ] = useState<any[]>([]);
 
     useEffect(() => {
 
@@ -61,10 +63,13 @@ export default function Compare () {
            if (tokenizers.length > 0) setSelectedTokenizer(tokenizers[0]);
        }).catch((error) => console.error("Error fetching tokenizers: " + error));
 
+       getLanguages().then((languages) => {
+            setLanguages(Object.values(languages));
+       }).catch(err => console.error(err))
+
 
        getModelSummary().then((data: ModelSummary[] | any) => {
            setMetrics(data);
-
            const saved = loadSavedModels();
 
            if (saved.length > 0) {
@@ -143,17 +148,21 @@ export default function Compare () {
         saveModels(newAdded);
     }
 
+    // be able to filter metrics summary based on langauge?? doe sit returnn the avg of all?? hmmmm.
+
     return (
         <>
             <section className="w-full">
                 <div className="flex gap-3 bg-[#EBE9E4] p-3 rounded-lg mb-10">
                     <DropDown options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
+                    <DropDown options={languages} placeholder="Select a Language" />
                     <Button action={handleAddTokenizer} text="+ Add tokenizer" className="!rounded-lg"/>
+
                 </div>
                 <div className="flex gap-5 mb-10">
                     {
                         availableMetrics.map(metric => (
-                            <Button key={metric.id} text={metric.label} action={() => toggleMetric(metric.id)} disabled={hiddenMetrics.includes(metric.id)}/>
+                            <Button className="!text-[11px] !px[.5rem] !py-[.5rem]" icon={<Dot color={["#22a06b", "#e45a3b", "#d97706", "#2563eb"][Math.floor(Math.random() * 4)] as string} />} key={metric.id} text={metric.label} action={() => toggleMetric(metric.id)} disabled={hiddenMetrics.includes(metric.id)}/>
                         ))
                     }
                 </div>
