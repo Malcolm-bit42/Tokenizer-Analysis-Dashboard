@@ -1,4 +1,4 @@
-import type { languages_t, metric_t, MetricsResponse, ModelSummary, TokenizeResponse } from "../utils/types";
+import type { languages_t, LanguageSummary, metric_t, MetricsResponse, ModelSummary, TokenizeResponse } from "../utils/types";
 
 const BASE_URL: string = 'http://localhost:8000';
 
@@ -61,14 +61,25 @@ export async function tokeniseText(model_id: string, text: string): Promise<Toke
 
 }
 
-export async function getModelSummary(): Promise<ModelSummary> {
+export async function getModelSummary(): Promise<ModelSummary | any> {
 
-    const res = await fetch(`${BASE_URL}/tokenizer/summary`);
+    const res = await fetch(`${BASE_URL}/tokenizer/summary/models`);
 
     if (!res.ok) throw new Error('Failed to fetch model summary: ' + res.status);
 
     const data = await res.json();
 
     return data.models;
+
+}
+
+export async function getLanguageSummary(): Promise<LanguageSummary | any> {
+    const res = await fetch(`${BASE_URL}/tokenizer/summary/languages`);
+
+    if (!res.ok) throw new Error("Failed to fetch langauge summary: " + res.body);
+
+    const data = await res.json();
+
+    return data.languages;
 
 }
