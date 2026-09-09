@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react"
-import { getLanguages, getModelSummary, getTokenizers } from "../../api/api";
+import { getLanguages, getLanguageSummary, getModelSummary, getTokenizers } from "../../api/api";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
-import type { ModelSummary } from "../../utils/types";
+import type { LanguageSummary, ModelSummary } from "../../utils/types";
 import { Arrow } from "../../components/icons/arrow";
 import { Dot } from "../../components/icons/dot";
+import { LeaderBoardSkeleton } from "./leaderboard-skeleton";
 
 const KEY:string = "tad-selected-models";
 const HIDDEN_METRICS_KEY: string = "tad-hidden-metrics";
-export type metric_t = "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall";
+export type metric_t = "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall" | "avg_premium";
 
 
 function loadSavedModels(): string[] {
@@ -43,7 +44,8 @@ const availableMetrics: { id: metric_t, label: string }[] = [
     { id: "avg_compression", label: "Avg. Compression" },
     { id: "avg_precision", label: "Avg. Precision" },
     { id: "avg_f1", label: "Avg. F1" },
-    { id: "avg_recall", label: "Avg. Recall" }
+    { id: "avg_recall", label: "Avg. Recall" },
+    {id: "avg_premium", label: "Avg. Premium"}
 ];
 
 export default function Compare () {
@@ -55,35 +57,68 @@ export default function Compare () {
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
     const [ languages, setLanguages ] = useState<any[]>([]);
+    const [langaugeMetrics, setLanguageMetrics] = useState<LanguageSummary[] | any>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [view, setView] = useState<"Language" | "Tokenizer">("Tokenizer");
 
     useEffect(() => {
+    setIsLoading(true);
 
-       getTokenizers().then((tokenizers) => {
-           setTokenizerModels(tokenizers);
-           if (tokenizers.length > 0) setSelectedTokenizer(tokenizers[0]);
-       }).catch((error) => console.error("Error fetching tokenizers: " + error));
+    let isMounted = true; // Prevents state updates if component unmounts mid-flight
 
-       getLanguages().then((languages) => {
-            setLanguages(Object.values(languages));
-       }).catch(err => console.error(err))
+    async function fetchInitialData() {
+        try {
+        // 1. Fire all requests concurrently
+        const [tokenizers, languagesData, modelSummaryData, languageSummaryData] = await Promise.all([
+            getTokenizers(),
+            getLanguages(),
+            getModelSummary(),
+            getLanguageSummary()
+        ]);
 
+        // 2. Guard against updating state on an unmounted component
+        if (!isMounted) return;
 
-       getModelSummary().then((data: ModelSummary[] | any) => {
-           setMetrics(data);
-           const saved = loadSavedModels();
+        // 3. Process and batch Tokenizers
+        setTokenizerModels(tokenizers);
+        if (tokenizers.length > 0) {
+            setSelectedTokenizer(tokenizers[0]);
+        }
 
-           if (saved.length > 0) {
-               setAddedTokenisers(saved);
-           } else {
-               const defaultModels = data.slice(0, 5).map((d: any) => d.model_id);
-               setAddedTokenisers(defaultModels);
-               saveModels(defaultModels);
-           }
-       }).catch(error => console.error("Error getting summaries: " + error));
+        // 4. Process and batch Languages
+        setLanguages(Object.values(languagesData));
 
+        // 5. Process and batch Model Summaries
+        setMetrics(modelSummaryData);
+        const saved = loadSavedModels();
+
+        setLanguageMetrics(languageSummaryData);
+        
+        if (saved.length > 0) {
+            setAddedTokenisers(saved);
+        } else {
+            const defaultModels = modelSummaryData.slice(0, 5).map((d: any) => d.model_id);
+            setAddedTokenisers(defaultModels);
+            saveModels(defaultModels);
+        }
+
+        } catch (error) {
+        console.error("Failed to load initial page data:", error);
+        // Optional: setAnErrorState(true);
+        } finally {
+            if (isMounted) setIsLoading(false);
+        }
+    }
+
+    fetchInitialData();
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+        isMounted = false;
+    };
     }, []);
 
-    const tableColumns: string[] = ["#", "Tokenizer", ...availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map(m => m.label), ""];
+    const tableColumns: string[] = ["#", view, ...availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map(m => m.label), ""];
 
     const toggleMetric = (metricId: metric_t) => {
         setHiddenMetrics(prev => {
@@ -149,15 +184,41 @@ export default function Compare () {
     }
 
     // be able to filter metrics summary based on langauge?? doe sit returnn the avg of all?? hmmmm.
+    if (isLoading) return <LeaderBoardSkeleton />;
+
+    console.log(langaugeMetrics)
 
     return (
         <>
             <section className="w-full">
-                <div className="flex gap-3 bg-[#EBE9E4] p-3 rounded-lg mb-10">
-                    <DropDown options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
-                    <DropDown options={languages} placeholder="Select a Language" />
-                    <Button action={handleAddTokenizer} text="+ Add tokenizer" className="!rounded-lg"/>
+                <div className="flex justify-between items-center bg-[#EBE9E4] p-3 rounded-lg mb-10">
+                    <div className="flex gap-5">
+                        <DropDown disbale={view === "Language"} options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
+                        {/* <DropDown options={languages} placeholder="Select a Language" /> */}
+                        <Button action={handleAddTokenizer} text="+ Add tokenizer" className="!rounded-lg"/>
+                    </div>
 
+                    <div className="flex gap-4 items-center">
+                            {/* Be able to toggle between ranking by language and ranking by tokenizers */}
+                            <p className="section-label !font-bold !text-[#000]">
+                                {
+                                    view === "Tokenizer" ? "Rank By Language." : "Revert to tokenizer ranking."
+                                }
+                            </p>
+                            <div className={`before:transition-all pointer-events-none before:pointer-events-auto w-[70px] relative bg-[#000] h-[28px] rounded-pill before:content-[''] before:w-[20px] before:h-[20px] before:bg-[#fff] before:absolute before:top-[50%] before:translate-y-[-50%] before:rounded-full hover:before:cursor-pointer ${view === "Language" ? "before:left-[46px] before:translate-x[-46px]" : "before:left-[4px] before:translate-x[-4px]"}`} onClick={() => view === "Language" ? setView("Tokenizer") : setView("Language")}>
+                                {/* Left = 4px, right = width - diameter of :before - left px */}
+                                {/* py -> 4px b 4px t */}
+                                {/* Therefore, set left to 4px */}
+                                {/* right = 70px - 20px - 4px = 46px */}
+                                {/* Ts is lowkey kinda ahh, not what I envisioned, but oh well */}
+                            </div>
+
+                           
+                        
+                    </div>
+                    
+                    {/* <Button action={() =>  view == "Language" ? setView("Tokenizer") : setView("Language")} text={view} /> */}
+                   
                 </div>
                 <div className="flex gap-5 mb-10">
                     {
@@ -187,24 +248,43 @@ export default function Compare () {
 
                     <tbody className="bg-panel section-label ">
                             {
-                              displayData.map((data: ModelSummary, index: number) => (
-                                    <tr key={data.model_id} className="text-charcoal border-b-[.1px] border-b-[#ddd]">
-                                        <td className="py-3 pl-8">{index + 1}</td>
-                                        <td className="p-3">{data.model_id}</td>
+                                view === "Language" ? (
+                                langaugeMetrics.map((data: LanguageSummary, index: number) => (
+                                    <tr key={data.language} className="text-charcoal border-b-[.1px] border-b-[#ddd]">
+                                        <td className="py-3 pl-8 font-bold">{index + 1}</td>
+                                        <td className="p-3 font-bold pl-10">{data.language}</td>
+                                           
                                         {
-                                            availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map((metric) => (
-                                                    <td key={metric.id} className="p-3">
-                                                        {data[metric.id as keyof ModelSummary] as string}
-                                                    </td>
-                                                ))
+                                            // Object.values(data).map((metric, _) =>  <td key={data.language} className="p-3 text-center">{data[data.language as keyof LanguageSummary] as string}</td>)
+                                            availableMetrics.map((metric, _) => (
+                                                <td key={metric.id} className="p-3 text-center">{data[metric.id as keyof LanguageSummary] as string}</td>
+                                            ))
                                         }
                                         <td className="py-3 px-0">
-                                            <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
+                                            {/* <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
                                                 &#x2715;
-                                            </button>
+                                            </button> */}
                                         </td>
                                     </tr>
-                                ))
+                                ))) : (
+                                displayData.map((data: ModelSummary, index: number) => (
+                                        <tr key={data.model_id} className="text-charcoal border-b-[.1px] border-b-[#ddd]">
+                                            <td className="py-3 pl-8 font-bold">{index + 1}</td>
+                                            <td className="p-3 font-bold">{data.model_id}</td>
+                                            {
+                                                availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map((metric) => (
+                                                        <td key={metric.id} className="p-3 text-center">
+                                                            {data[metric.id as keyof ModelSummary] as string}
+                                                        </td>
+                                                    ))
+                                            }
+                                            <td className="py-3 px-0">
+                                                <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
+                                                    &#x2715;
+                                                </button>
+                                            </td>
+                                        </tr>
+                                )))
                             }
                     </tbody>
                 </table>

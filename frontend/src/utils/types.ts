@@ -33,15 +33,21 @@ export interface TokenizeResponse {
   offsets: [number, number][];
 }
 
-/* ─── Model summary from GET /tokenizer/summary ─── */
-export interface ModelSummary {
-  model_id: string;
+/* ─── Model summary from GET /tokenizer/summary/* ─── */
+interface Summary {
+  // model_id: string;
   avg_fertility: number;
   avg_compression: number;
   avg_f1: number;
   avg_precision: number;
   avg_recall: number
+  avg_premium: number;
 }
+
+export type ModelSummary = Summary & { model_id: string };
+
+export type LanguageSummary = Summary & {language: string};
+
 
 /* ─── Language metadata ─── */
 export interface LanguageInfo {

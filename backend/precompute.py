@@ -1,7 +1,7 @@
 import json
 import time
 from pathlib import Path
-from utils.tokenizer_registry import Tokenizer
+from utils.tokenizer_registry import TokenizerRegistry
 from utils.metrics_pipeline import load_flores, load_NCHLT, tokenizer_metrics
 from utils.constants import NON_GATED_TOKENIZERS 
 
@@ -15,7 +15,7 @@ def run_precomputation():
     # preload=False: don't bulk-load all tokenizers into memory.
     # cache_capacity=2: only keep ~2 tokenizers in memory at a time, evicting old ones.
     # This keeps memory low so the precompute service doesn't starve the API server.
-    registry = Tokenizer(cache_capacity=2, preload=False)
+    registry = TokenizerRegistry(cache_capacity=2, preload=False)
     flores_data = load_flores(str(DEV_DIR))
     nchlt_data = load_NCHLT(str(DEV_DIR))
     
