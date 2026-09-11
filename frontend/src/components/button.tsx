@@ -15,7 +15,7 @@ interface IButton {
 export const Button: React.FC<IButton> = ({ fill = "bg-charcoal", color = "text-panel", text, action, icon, disabled=false, className="" }) => {
     return (
         <>
-            <button className={`${disabled ? "opacity-50": null} ${fill} ${color} flex items-center gap-2 font-bold rounded-3xl border-solid px-[1rem] py-[.75rem] text-[13px] cursor-pointer ` + className} onClick={action} >
+            <button className={`${disabled ? "opacity-50": null} ${fill} ${color} flex items-center text-nowrap gap-2 font-bold rounded-3xl border-solid px-[1rem] py-[.75rem] text-[13px] cursor-pointer ` + className} onClick={action} >
                 {icon && icon}
                 {text}
             </button>

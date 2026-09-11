@@ -21,7 +21,7 @@ export const LeaderBoardSkeleton = () => {
             {/* The metric selection buttons */}
             <div className="flex gap-5 mb-10">
                     {
-                        Array.from({ length: 6 }).map((_, i) => (
+                        Array.from({ length: 7 }).map((_, i) => (
                             <div key={i} className="skeleton !px[.5rem] !py-[.5rem] w-full max-w-[120px] h-[35px] !rounded-[9999px]"></div>
                         ))
                     }
