@@ -139,7 +139,9 @@ export default function Compare () {
     }
 
 
-    const displayData = [...(view === "Tokenizer" ? metrics : langaugeMetrics)].filter((m) => addedTokenisers.includes(m.model_id)).sort((a, b) => {
+    const displayData = [...(view === "Tokenizer" ? metrics : langaugeMetrics)]
+        .filter((m) => view === "Tokenizer" ? addedTokenisers.includes(m.model_id) : true)
+        .sort((a, b) => {
             if (sortBy === "model_id") {
                 return sortDirection === "asc" ? a.model_id.localeCompare(b.model_id) : b.model_id.localeCompare(a.model_id);
             } else if (sortBy === "language") return sortDirection === "asc" ? a.language.localeCompare(b.language) : b.language.localeCompare(a.language);
@@ -251,7 +253,7 @@ export default function Compare () {
                     <tbody className="bg-panel section-label ">
                             {
                                 view === "Language" ? (
-                                langaugeMetrics.map((data: LanguageSummary, index: number) => (
+                                displayData.map((data: LanguageSummary, index: number) => (
                                     <tr key={data.language} className="text-charcoal border-b-[.1px] border-b-[#ddd]">
                                         <td className="py-3 pl-8 font-bold">{index + 1}</td>
                                         <td className="p-3 font-bold pl-10">{data.language}</td>
