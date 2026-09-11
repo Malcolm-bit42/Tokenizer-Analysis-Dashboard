@@ -36,6 +36,7 @@ export interface TokenizeResponse {
 /* ─── Model summary from GET /tokenizer/summary/* ─── */
 interface Summary {
   // model_id: string;
+  avg_tokens:  number;
   avg_fertility: number;
   avg_compression: number;
   avg_f1: number;

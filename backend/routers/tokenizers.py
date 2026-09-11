@@ -125,8 +125,8 @@ def get_languages():
     try:
         return {"languages": LANGUAGES}
     except Exception as e:
-        print(f"error fetching languages: " + e)
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"error fetching languages: " + str(e))
+        raise HTTPException(status_code=400, detail="There was an error fetching the languages.")
 
 @router.get("/summary/models")
 def get_summary():
@@ -141,6 +141,7 @@ def get_summary():
         fertilities = []
         compressions=[]
         premiums=[]
+        token_count = []
 
         #linguistic
         f1s= []
@@ -152,6 +153,7 @@ def get_summary():
             fertilities.append(value["fertility"])
             compressions.append(value["compression"])
             premiums.append(value["token_premium"])
+            token_count.append(value["token_count"])
 
 
         for value in linguistic_data.values():
@@ -162,6 +164,7 @@ def get_summary():
 
         summary.append({
             "model_id": key,
+            "avg_tokens": round(sum(token_count)/len(token_count), 3) if len(token_count) != 0 else 0,
             "avg_fertility": round(sum(fertilities)/len(fertilities), 3) if len(fertilities) != 0 else 0,
             "avg_compression": round(sum(compressions) /len(compressions), 3) if len(compressions) != 0 else 0,
             "avg_premium": round(sum(premiums)/ len(premiums), 3) if len(premiums) != 0 else 0,
@@ -194,48 +197,35 @@ def get_language_summary():
                     "f1s": [],
                     "precisions": [],
                     "recalls": [],
-                    "premium": []
+                    "premium": [],
+                    "token_count": []
                 }
 
             if language in efficiency_data:
                 efficiency = efficiency_data[language]
-
-                language_data[language]["fertilities"].append(
-                    efficiency["fertility"]
-                )
-                language_data[language]["compressions"].append(
-                    efficiency["compression"]
-                )
+                language_data[language]["fertilities"].append(efficiency["fertility"])
+                language_data[language]["compressions"].append(efficiency["compression"])
                 language_data[language]["premium"].append(efficiency["token_premium"])
+                language_data[language]["token_count"].append(efficiency["token_count"])
 
             if language in linguistic_data:
                 linguistic = linguistic_data[language]
-
-                language_data[language]["f1s"].append(
-                    linguistic["f1"]
-                )
-                language_data[language]["precisions"].append(
-                    linguistic["precision"]
-                )
-                language_data[language]["recalls"].append(
-                    linguistic["recall"]
-                )
+                language_data[language]["f1s"].append(linguistic["f1"])
+                language_data[language]["precisions"].append(linguistic["precision"])
+                language_data[language]["recalls"].append(linguistic["recall"])
 
     summary = []
 
     for language, values in language_data.items():
         summary.append({
             "language": language,
-            "avg_fertility": round(sum(values["fertilities"]) / len(values["fertilities"]), 3) if values["fertilities"] else 0,
-
-            "avg_compression": round(sum(values["compressions"]) / len(values["compressions"]), 3) if values["compressions"] else 0,
-
-            "avg_f1": round(sum(values["f1s"]) / len(values["f1s"]), 3) if values["f1s"] else 0,
-
-            "avg_precision": round(sum(values["precisions"]) / len(values["precisions"]), 3) if values["precisions"] else 0,
-
-            "avg_recall": round(sum(values["recalls"]) / len(values["recalls"]), 3) if values["recalls"] else 0,
-            "avg_premium": round(sum(values["premium"]) / len(values["premium"]), 3) if values["premium"] else 0
+            "avg_tokens": round(sum(values["token_count"])/len(values["token_count"]), 3) if len(values["token_count"]) != 0 else 0,
+            "avg_fertility": round(sum(values["fertilities"]) / len(values["fertilities"]), 3) if len(values["fertilities"]) else 0,
+            "avg_compression": round(sum(values["compressions"]) / len(values["compressions"]), 3) if len(values["compressions"]) else 0,
+            "avg_f1": round(sum(values["f1s"]) / len(values["f1s"]), 3) if len(values["f1s"]) else 0,
+            "avg_precision": round(sum(values["precisions"]) / len(values["precisions"]), 3) if len(values["precisions"]) else 0,
+            "avg_recall": round(sum(values["recalls"]) / len(values["recalls"]), 3) if len(values["recalls"]) else 0,
+            "avg_premium": round(sum(values["premium"]) / len(values["premium"]), 3) if len(values["premium"]) else 0
 
         })
 

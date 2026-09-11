@@ -9,7 +9,7 @@ import { LeaderBoardSkeleton } from "./leaderboard-skeleton";
 
 const KEY:string = "tad-selected-models";
 const HIDDEN_METRICS_KEY: string = "tad-hidden-metrics";
-export type metric_t = "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall" | "avg_premium";
+export type metric_t =  "avg_tokens" | "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall" | "avg_premium";
 
 
 function loadSavedModels(): string[] {
@@ -40,6 +40,7 @@ function saveHiddenMetrics(metrics: metric_t[]): void {
 }
 
 const availableMetrics: { id: metric_t, label: string }[] = [
+    {id: "avg_tokens", label: "Avg. Tokens"},
     { id: "avg_fertility", label: "Avg. Fertility" },
     { id: "avg_compression", label: "Avg. Compression" },
     { id: "avg_precision", label: "Avg. Precision" },
@@ -53,7 +54,7 @@ export default function Compare () {
     const [hiddenMetrics, setHiddenMetrics] = useState<metric_t[]>(loadHiddenMetrics);
     const [metrics, setMetrics] = useState<ModelSummary[]>([]);
     const [addedTokenisers, setAddedTokenisers] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState<metric_t | "model_id">("avg_fertility");
+    const [sortBy, setSortBy] = useState<metric_t | "model_id" | "language">("avg_fertility");
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
     const [ languages, setLanguages ] = useState<any[]>([]);
@@ -128,31 +129,32 @@ export default function Compare () {
         });
     }
 
-        const handleSort = (metric: metric_t | "model_id") => {
-            if (sortBy === metric) {
-                setSortDirection((currentDirection) =>
-                    currentDirection === "asc" ? "desc" : "asc"
-                );
-            } else {
-                setSortBy(metric);
-                setSortDirection("desc");
-            }
+    const handleSort = (metric: metric_t | "model_id" | "language") => {
+        if (sortBy === metric) {
+            setSortDirection((currentDirection) =>currentDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortBy(metric);
+            setSortDirection("desc");
         }
+    }
 
 
-    const displayData = [...metrics].filter((m) => addedTokenisers.includes(m.model_id)).sort((a, b) => {
+    const displayData = [...(view === "Tokenizer" ? metrics : langaugeMetrics)].filter((m) => addedTokenisers.includes(m.model_id)).sort((a, b) => {
             if (sortBy === "model_id") {
                 return sortDirection === "asc" ? a.model_id.localeCompare(b.model_id) : b.model_id.localeCompare(a.model_id);
-            }
+            } else if (sortBy === "language") return sortDirection === "asc" ? a.language.localeCompare(b.language) : b.language.localeCompare(a.language);
 
             return sortDirection === "asc" ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
     });
 
-    const getMetricKey = (column: string): metric_t | "model_id" | null => {
+    const getMetricKey = (column: string): metric_t | "model_id" | "language" | null => {
         if (column === "Tokenizer") return "model_id";
+        if (column === "Language") return "language";
         if (column === "#" || column === "Action") return null;
         return column.toLowerCase().replaceAll(".", "").replaceAll(" ", "_") as metric_t;
     }
+
+    console.log(langaugeMetrics)
 
     const sortIndicator = (metric: string | null) => {
         if (!metric || metric !== sortBy) {
@@ -186,7 +188,7 @@ export default function Compare () {
     // be able to filter metrics summary based on langauge?? doe sit returnn the avg of all?? hmmmm.
     if (isLoading) return <LeaderBoardSkeleton />;
 
-    console.log(langaugeMetrics)
+    // console.log(metrics)
 
     return (
         <>
@@ -195,7 +197,7 @@ export default function Compare () {
                     <div className="flex gap-5">
                         <DropDown disbale={view === "Language"} options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
                         {/* <DropDown options={languages} placeholder="Select a Language" /> */}
-                        <Button action={handleAddTokenizer} text="+ Add tokenizer" className="!rounded-lg"/>
+                        <Button action={handleAddTokenizer} text="+ Add tokenizer" className={`${view === "Language" && "pointer-events-none cursor-default"} !rounded-lg`}disabled={view === "Language"}/>
                     </div>
 
                     <div className="flex gap-4 items-center">
@@ -256,9 +258,10 @@ export default function Compare () {
                                            
                                         {
                                             // Object.values(data).map((metric, _) =>  <td key={data.language} className="p-3 text-center">{data[data.language as keyof LanguageSummary] as string}</td>)
-                                            availableMetrics.map((metric, _) => (
+                                            availableMetrics.filter((m) => !hiddenMetrics.includes(m.id)).map((metric) => (
                                                 <td key={metric.id} className="p-3 text-center">{data[metric.id as keyof LanguageSummary] as string}</td>
                                             ))
+
                                         }
                                         <td className="py-3 px-0">
                                             {/* <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
