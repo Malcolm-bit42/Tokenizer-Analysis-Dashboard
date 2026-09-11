@@ -103,6 +103,8 @@ class TokenizerRegistry:
     def tokenize_text(self, model_id: str, text: str) -> Dict[str, any]:
             # Tokenises text and returns standard results: 
             # token strings, IDs, count, and character offsets.
+            # Also computes live efficiency metrics on the input text
+            from utils.metrics_pipeline import effieciency_metric
 
             tokenizer = self.get_tokenizer(model_id)
             
@@ -117,24 +119,19 @@ class TokenizerRegistry:
 
             tokens = tokenizer.convert_ids_to_tokens(token_ids)
 
+            # Live efficiency metrics on the input text
+            # Wrap the text in a list to match the corpus format expected by the metrics pipeline
+            eff = effieciency_metric()
+            eff_metrics = eff.metrics([text], model_id, self)
+
             return {
                 "model_id": model_id,
-                "token_count": len(token_ids),
                 "tokens": tokens,
                 "token_ids": token_ids,
-                "offsets": offsets
+                "offsets": offsets,
+                "metrics": {
+                    "fertility": round(eff_metrics["fertility"], 3),
+                    "compression": round(eff_metrics["compression"], 3),
+                    "token_count":  eff_metrics["token_count"]
+                }
             }
-    
-    def save(self, path):
-        if self.tokenizer:
-            self.tokenizer.save_pretrained(path)
-        else:
-            print()
-    def encode(self, text):
-        if self.tokenizer:
-            return self.tokenizer.encode(text)
-        print("errrror")
-        return None
-        
-  
-    

@@ -125,8 +125,8 @@ def get_languages():
     try:
         return {"languages": LANGUAGES}
     except Exception as e:
-        print(f"error fetching languages: " + e)
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"error fetching languages: " + str(e))
+        raise HTTPException(status_code=400, detail="There was an error fetching the languages.")
 
 @router.get("/summary/models")
 def get_summary():
