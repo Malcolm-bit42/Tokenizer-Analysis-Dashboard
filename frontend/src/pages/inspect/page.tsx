@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
 import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
+import "./style.css";
 
 export default function Inpsect() {
     // ─── Tokenizer dropdown state ───
