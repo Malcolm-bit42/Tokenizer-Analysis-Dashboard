@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { getLanguages, getMetrics, getRandomSentence, getTokenizers, tokeniseText } from "../../api/api";
-import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
+import { useEffect, useState } from "react";
+import { getLanguages, getMetrics, getTokenizers } from "../../api/api";
+import type { MetricsResponse } from "../../utils/types";
 import { METRIC_INFO } from "../../components/metricsdescription";
 import { MetricInfo } from "../metricinfo";
-import "./style.css";
+import { DropDown } from "../../components/dropdown";
+import { LiveWindow } from "./live_window";
 
 // Circular progress ring for a single metric value (e.g. fertility, compression).
+// Pure Tailwind + one inline conic-gradient (the only part that has to be dynamic per value).
 function MetricRing({
     value,
     label,
@@ -19,13 +21,16 @@ function MetricRing({
 }) {
     const percentage = Math.max(0, Math.min(100, (value / max) * 100));
     return (
-        <div className="metric-ring-wrap">
-            <div className="metric-ring" style={{ "--ring-progress": `${percentage * 3.6}deg` } as React.CSSProperties}>
-                <div className="metric-ring-inner">
-                    <strong>{value.toFixed(2)}</strong>
+        <div className="flex flex-col items-center gap-2">
+            <div
+                className="relative w-16 h-16 rounded-full"
+                style={{ background: `conic-gradient(var(--color-good) ${percentage}%, var(--color-soft-border) 0)` }}
+            >
+                <div className="absolute inset-1 bg-panel rounded-full flex items-center justify-center">
+                    <strong className="text-[11px] font-bold text-charcoal">{value.toFixed(2)}</strong>
                 </div>
             </div>
-            <span className="metric-ring-label">
+            <span className="text-[11px] text-muted flex items-center">
                 {label}
                 {description && <MetricInfo description={description} />}
             </span>
@@ -49,115 +54,17 @@ function MetricBar({
 }) {
     const width = Math.max(4, Math.min(100, (value / max) * 100));
     return (
-        <div className="metric-bar-row">
-            <div className="metric-bar-label">
-                <span>
+        <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-xs">
+                <span className="text-muted flex items-center">
                     {label}
                     {description && <MetricInfo description={description} />}
                 </span>
-                <b>{value.toFixed(3)}{suffix}</b>
+                <b className="text-charcoal">{value.toFixed(3)}{suffix}</b>
             </div>
-            <div className="metric-bar-track"><span style={{ width: `${width}%` }} /></div>
-        </div>
-    );
-}
-
-// Searchable tokenizer input: shows a filtered dropdown of existing tokenizers,
-// and lets the user type a brand-new Hugging Face tokenizer id to use on the fly.
-function TokenizerPicker({
-    value,
-    options,
-    loading,
-    onChange,
-    onAdd,
-}: {
-    value: string;
-    options: string[];
-    loading: boolean;
-    onChange: (value: string) => void;
-    onAdd: (value: string) => void;
-}) {
-    const [query, setQuery] = useState(value);
-    const [prevValue, setPrevValue] = useState(value);
-    const [open, setOpen] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    // Adjust local query when the `value` prop changes, without an Effect
-    // (see https://react.dev/learn/you-might-not-need-an-effect)
-    if (value !== prevValue) {
-        setPrevValue(value);
-        setQuery(value);
-    }
-
-    const suggestions = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return options.slice(0, 8);
-        return options.filter((item) => item.toLowerCase().includes(q)).slice(0, 8);
-    }, [options, query]);
-
-    const exactMatch = options.some((item) => item.toLowerCase() === query.trim().toLowerCase());
-    const commit = (candidate = query) => {
-        const clean = candidate.trim();
-        if (!clean) return;
-        const existing = options.find((item) => item.toLowerCase() === clean.toLowerCase());
-        const finalValue = existing ?? clean;
-        onChange(finalValue);
-        if (!existing) onAdd(clean);
-        setQuery(finalValue);
-        setOpen(false);
-    };
-
-    return (
-        <div className="tokenizer-picker">
-            <div className={`picker-input-shell ${open ? "is-open" : ""}`}>
-                <input
-                    ref={inputRef}
-                    value={query}
-                    disabled={loading}
-                    placeholder="Search or enter a Hugging Face tokenizer…"
-                    onFocus={() => setOpen(true)}
-                    onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") { e.preventDefault(); commit(); }
-                        if (e.key === "Escape") setOpen(false);
-                    }}
-                    aria-label="Tokenizer"
-                />
-                <button className="enter-hint" type="button" onClick={() => commit()} title="Use this tokenizer">
-                    ↵ Enter
-                </button>
-                <button className="picker-chevron" type="button" onClick={() => { setOpen((v) => !v); inputRef.current?.focus(); }} aria-label="Show tokenizers">
-                    {open ? "⌃" : "⌄"}
-                </button>
+            <div className="w-full h-1.5 bg-soft-border rounded-pill overflow-hidden">
+                <span className="block h-full bg-charcoal rounded-pill" style={{ width: `${width}%` }} />
             </div>
-
-            {open && !loading && (
-                <div className="picker-menu">
-                    {suggestions.map((item) => (
-                        <button
-                            type="button"
-                            className={`picker-option ${item === value ? "selected" : ""}`}
-                            key={item}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => commit(item)}
-                        >
-                            <span className="picker-option-text">
-                                <b>{item}</b>
-                                <small>{item.includes("/") ? "Hugging Face · pretrained tokenizer" : "Built-in / local tokenizer"}</small>
-                            </span>
-                            {item === value && <span className="check">✓</span>}
-                        </button>
-                    ))}
-                    {!exactMatch && query.trim() && (
-                        <button type="button" className="picker-add" onMouseDown={(e) => e.preventDefault()} onClick={() => commit()}>
-                            <span className="add-plus">＋</span>
-                            <span><b>Use "{query.trim()}"</b><small>Press Enter to load it dynamically</small></span>
-                            <span className="add-badge">NEW</span>
-                        </button>
-                    )}
-                    {suggestions.length === 0 && !query.trim() && <div className="picker-empty">No tokenizers are available yet.</div>}
-                </div>
-            )}
         </div>
     );
 }
@@ -178,18 +85,6 @@ export default function Inpsect() {
     const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
     const [metricsLoading, setMetricsLoading] = useState<boolean>(false);
     const [metricsError, setMetricsError] = useState<string | null>(null);
-
-    // ─── Tokenize preview state (separate box, own tokenizer selection) ───
-    const [previewTokenizer, setPreviewTokenizer] = useState<string>("");
-    const [previewText, setPreviewText] = useState<string>("");
-    const [previewResult, setPreviewResult] = useState<TokenizeResponse | null>(null);
-    const [previewLoading, setPreviewLoading] = useState<boolean>(false);
-    const [previewError, setPreviewError] = useState<string | null>(null);
-
-    // ─── Random sentence generator ───
-    const [randomLanguage, setRandomLanguage] = useState<string>("");
-    const [randomLoading, setRandomLoading] = useState<boolean>(false);
-    const [randomError, setRandomError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -212,17 +107,10 @@ export default function Inpsect() {
                 // Default to the first tokenizer once options arrive
                 if (tokenizerList.length > 0) {
                     setSelectedTokenizer(tokenizerList[0]);
-                    setPreviewTokenizer(tokenizerList[0]);
                 }
 
                 // Default to all languages selected
                 setSelectedLanguages(Object.keys(languageMap));
-
-                // Default the random-sentence generator to the first language
-                const languageCodes = Object.keys(languageMap);
-                if (languageCodes.length > 0) {
-                    setRandomLanguage(languageCodes[0]);
-                }
             } catch (err) {
                 if (!cancelled) {
                     setError(err instanceof Error ? err.message : "Failed to load options.");
@@ -276,39 +164,7 @@ export default function Inpsect() {
         };
     }, [selectedTokenizer, selectedLanguages, languages]);
 
-    // ─── Tokenize preview: debounced call whenever tokenizer or text changes ───
-    useEffect(() => {
-        if (!previewTokenizer || previewText.trim().length === 0) {
-            setPreviewResult(null);
-            setPreviewError(null);
-            return;
-        }
-
-        let cancelled = false;
-        const timer = setTimeout(async () => {
-            setPreviewLoading(true);
-            setPreviewError(null);
-
-            try {
-                const result = await tokeniseText(previewTokenizer, previewText);
-                if (!cancelled) setPreviewResult(result);
-            } catch (err) {
-                if (!cancelled) {
-                    setPreviewError(err instanceof Error ? err.message : "Failed to tokenize text.");
-                    setPreviewResult(null);
-                }
-            } finally {
-                if (!cancelled) setPreviewLoading(false);
-            }
-        }, 400); // debounce so we don't hit the API on every keystroke
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timer);
-        };
-    }, [previewTokenizer, previewText]);
-
-    // Lets TokenizerPicker register a tokenizer id the user typed that wasn't in the original list.
+    // Lets DropDown register a tokenizer id the user typed that wasn't in the original list.
     const addTokenizer = (value: string) => {
         setTokenizers((prev) =>
             prev.some((x) => x.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]
@@ -323,47 +179,26 @@ export default function Inpsect() {
         );
     };
 
-    // Fetches a random sentence in the chosen language and drops it into the preview box.
-    const handleGenerateRandom = async () => {
-        if (!randomLanguage) return;
-
-        setRandomLoading(true);
-        setRandomError(null);
-
-        try {
-            const languageName = languages[randomLanguage] ?? randomLanguage;
-            const result = await getRandomSentence(languageName);
-            setPreviewText(result.text);
-        } catch (err) {
-            setRandomError(err instanceof Error ? err.message : "Failed to generate a random sentence.");
-        } finally {
-            setRandomLoading(false);
-        }
-    };
-
     return (
         <section className="flex flex-col gap-6 px-[4rem] mt-14">
             {error && (
-                <p className="text-sm text-[color:var(--color-bad)]">
+                <p className="text-sm text-bad">
                     {error}
                 </p>
             )}
 
             {/* ─── Tokenizer dropdown ─── */}
             <div className="flex flex-col gap-2 w-[320px]">
-                <label htmlFor="tokenizer-select" className="section-label">
-                    Tokenizer
-                </label>
-
                 {loading ? (
                     <div className="skeleton h-[44px] w-full" />
                 ) : (
-                    <TokenizerPicker
-                        value={selectedTokenizer}
+                    <DropDown
                         options={tokenizers}
-                        loading={loading}
-                        onChange={setSelectedTokenizer}
-                        onAdd={addTokenizer}
+                        placeholder="Tokenizer"
+                        action={(e: any) => {
+                            setSelectedTokenizer(e.target.value);
+                            addTokenizer(e.target.value);
+                        }}
                     />
                 )}
             </div>
@@ -387,7 +222,7 @@ export default function Inpsect() {
                                     key={code}
                                     type="button"
                                     onClick={() => toggleLanguage(code)}
-                                    className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-[var(--radius-pill)] border transition-base cursor-pointer ${
+                                    className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-pill border transition-base cursor-pointer ${
                                         isActive
                                             ? "bg-charcoal text-panel border-charcoal"
                                             : "bg-panel text-muted border-soft-border hover:border-strong-border"
@@ -406,7 +241,7 @@ export default function Inpsect() {
                 <p className="section-label">Metrics</p>
 
                 {metricsError && (
-                    <p className="text-sm text-[color:var(--color-bad)]">
+                    <p className="text-sm text-bad">
                         {metricsError}
                     </p>
                 )}
@@ -445,7 +280,7 @@ export default function Inpsect() {
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Efficiency
                                                     </p>
-                                                    <div className="rings">
+                                                    <div className="flex items-center gap-4">
                                                         <MetricRing
                                                             value={efficiency.fertility}
                                                             label="fertility"
@@ -458,17 +293,22 @@ export default function Inpsect() {
                                                             description={METRIC_INFO.compression}
                                                             max={Math.max(1, efficiency.compression)}
                                                         />
-                                                        <div className="mini-stat">
-                                                            <b>{efficiency.token_count.toLocaleString()}</b>
-                                                            <span>tokens<MetricInfo description={METRIC_INFO.token_count} /></span>
-                                                            <em>premium {efficiency.token_premium.toFixed(2)}<MetricInfo description={METRIC_INFO.token_premium} /></em>
+                                                        <div className="flex flex-col gap-0.5 text-xs">
+                                                            <b className="text-charcoal">{efficiency.token_count.toLocaleString()}</b>
+                                                            <span className="text-muted flex items-center">
+                                                                tokens<MetricInfo description={METRIC_INFO.token_count} />
+                                                            </span>
+                                                            <em className="text-muted not-italic flex items-center">
+                                                                premium {efficiency.token_premium.toFixed(2)}
+                                                                <MetricInfo description={METRIC_INFO.token_premium} />
+                                                            </em>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {linguistic && (
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-2">
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Linguistic
                                                     </p>
@@ -486,114 +326,13 @@ export default function Inpsect() {
                 )}
             </div>
 
-            {/* ─── Tokenize Preview ─── */}
-            <div className="card flex flex-col gap-5 p-6 mt-4 mb-14">
-                <p className="section-label">Tokenize Preview</p>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                    {/* Tokenizer dropdown for this box */}
-                    <div className="flex flex-col gap-2 w-full md:w-[280px]">
-                        <label htmlFor="preview-tokenizer-select" className="text-xs font-medium text-muted">
-                            Tokenizer
-                        </label>
-                        <TokenizerPicker
-                            value={previewTokenizer}
-                            options={tokenizers}
-                            loading={loading}
-                            onChange={setPreviewTokenizer}
-                            onAdd={addTokenizer}
-                        />
-                    </div>
-
-                    {/* Text input */}
-                    <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify-between gap-2">
-                            <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
-                                Text
-                            </label>
-
-                            {/* ─── Random sentence generator ─── */}
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={randomLanguage}
-                                    onChange={(e) => setRandomLanguage(e.target.value)}
-                                    disabled={loading || Object.keys(languages).length === 0}
-                                    aria-label="Language for random sentence"
-                                    className="bg-canvas text-charcoal text-xs font-medium px-2 py-1.5 rounded-[var(--radius-sm)] border border-soft-border cursor-pointer outline-none appearance-none"
-                                >
-                                    {Object.entries(languages).map(([code, name]) => (
-                                        <option key={code} value={code}>{name}</option>
-                                    ))}
-                                </select>
-                                <button
-                                    type="button"
-                                    onClick={handleGenerateRandom}
-                                    disabled={randomLoading || !randomLanguage}
-                                    className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-pill)] border border-soft-border text-muted hover:border-strong-border transition-base cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {randomLoading ? "Generating…" : "🎲 Random sentence"}
-                                </button>
-                            </div>
-                        </div>
-                        <textarea
-                            id="preview-text-input"
-                            value={previewText}
-                            onChange={(e) => setPreviewText(e.target.value)}
-                            placeholder="Type or paste text to see how the tokenizer splits it..."
-                            rows={3}
-                            className="bg-canvas text-charcoal text-sm px-4 py-3 rounded-[var(--radius-card)] border border-soft-border outline-none resize-none"
-                        />
-                        {randomError && (
-                            <p className="text-xs text-[color:var(--color-bad)]">
-                                {randomError}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                {previewError && (
-                    <p className="text-sm text-[color:var(--color-bad)]">
-                        {previewError}
-                    </p>
-                )}
-
-                {/* Dark token preview panel */}
-                <div className="card-dark p-5 min-h-[120px] flex flex-col gap-4">
-                    {previewText.trim().length === 0 ? (
-                        <p className="text-sm text-[color:var(--color-dark-muted)]">
-                            Enter some text above to see its tokens.
-                        </p>
-                    ) : previewLoading ? (
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: 10 }).map((_, i) => (
-                                <div key={i} className="skeleton h-[28px] w-[60px]" />
-                            ))}
-                        </div>
-                    ) : previewResult ? (
-                        <>
-                            <p className="text-xs font-mono uppercase tracking-wide text-[color:var(--color-dark-muted)]">
-                                {previewResult.token_count} tokens · {previewResult.model_id}
-                            </p>
-
-                            <div className="flex flex-wrap gap-2">
-                                {previewResult.tokens.map((token, i) => (
-                                    <span
-                                        key={i}
-                                        title={`id: ${previewResult.token_ids[i]}`}
-                                        className={`font-mono text-xs px-2 py-1 rounded-md border border-[color:var(--color-dark-surface)] ${
-                                            i % 2 === 0
-                                                ? "bg-[color:var(--color-dark-surface)] text-panel"
-                                                : "bg-transparent text-panel"
-                                        }`}
-                                    >
-                                        {token}
-                                    </span>
-                                ))}
-                            </div>
-                        </>
-                    ) : null}
-                </div>
-            </div>
+            {/* ─── Live tokenization ─── */}
+            <LiveWindow
+                tokenizers={tokenizers}
+                loading={loading}
+                languages={languages}
+                onAddTokenizer={addTokenizer}
+            />
         </section>
     );
 }
