@@ -1,7 +1,107 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
 import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
 import "./style.css";
+
+// Searchable tokenizer input: shows a filtered dropdown of existing tokenizers,
+// and lets the user type a brand-new Hugging Face tokenizer id to use on the fly.
+function TokenizerPicker({
+    value,
+    options,
+    loading,
+    onChange,
+    onAdd,
+}: {
+    value: string;
+    options: string[];
+    loading: boolean;
+    onChange: (value: string) => void;
+    onAdd: (value: string) => void;
+}) {
+    const [query, setQuery] = useState(value);
+    const [prevValue, setPrevValue] = useState(value);
+    const [open, setOpen] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Adjust local query when the `value` prop changes, without an Effect
+    // (see https://react.dev/learn/you-might-not-need-an-effect)
+    if (value !== prevValue) {
+        setPrevValue(value);
+        setQuery(value);
+    }
+
+    const suggestions = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return options.slice(0, 8);
+        return options.filter((item) => item.toLowerCase().includes(q)).slice(0, 8);
+    }, [options, query]);
+
+    const exactMatch = options.some((item) => item.toLowerCase() === query.trim().toLowerCase());
+    const commit = (candidate = query) => {
+        const clean = candidate.trim();
+        if (!clean) return;
+        const existing = options.find((item) => item.toLowerCase() === clean.toLowerCase());
+        const finalValue = existing ?? clean;
+        onChange(finalValue);
+        if (!existing) onAdd(clean);
+        setQuery(finalValue);
+        setOpen(false);
+    };
+
+    return (
+        <div className="tokenizer-picker">
+            <div className={`picker-input-shell ${open ? "is-open" : ""}`}>
+                <input
+                    ref={inputRef}
+                    value={query}
+                    disabled={loading}
+                    placeholder="Search or enter a Hugging Face tokenizer…"
+                    onFocus={() => setOpen(true)}
+                    onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); commit(); }
+                        if (e.key === "Escape") setOpen(false);
+                    }}
+                    aria-label="Tokenizer"
+                />
+                <button className="enter-hint" type="button" onClick={() => commit()} title="Use this tokenizer">
+                    ↵ Enter
+                </button>
+                <button className="picker-chevron" type="button" onClick={() => { setOpen((v) => !v); inputRef.current?.focus(); }} aria-label="Show tokenizers">
+                    {open ? "⌃" : "⌄"}
+                </button>
+            </div>
+
+            {open && !loading && (
+                <div className="picker-menu">
+                    {suggestions.map((item) => (
+                        <button
+                            type="button"
+                            className={`picker-option ${item === value ? "selected" : ""}`}
+                            key={item}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => commit(item)}
+                        >
+                            <span className="picker-option-text">
+                                <b>{item}</b>
+                                <small>{item.includes("/") ? "Hugging Face · pretrained tokenizer" : "Built-in / local tokenizer"}</small>
+                            </span>
+                            {item === value && <span className="check">✓</span>}
+                        </button>
+                    ))}
+                    {!exactMatch && query.trim() && (
+                        <button type="button" className="picker-add" onMouseDown={(e) => e.preventDefault()} onClick={() => commit()}>
+                            <span className="add-plus">＋</span>
+                            <span><b>Use "{query.trim()}"</b><small>Press Enter to load it dynamically</small></span>
+                            <span className="add-badge">NEW</span>
+                        </button>
+                    )}
+                    {suggestions.length === 0 && !query.trim() && <div className="picker-empty">No tokenizers are available yet.</div>}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function Inpsect() {
     // ─── Tokenizer dropdown state ───
@@ -138,6 +238,13 @@ export default function Inpsect() {
         };
     }, [previewTokenizer, previewText]);
 
+    // Lets TokenizerPicker register a tokenizer id the user typed that wasn't in the original list.
+    const addTokenizer = (value: string) => {
+        setTokenizers((prev) =>
+            prev.some((x) => x.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]
+        );
+    };
+
     const toggleLanguage = (code: string) => {
         setSelectedLanguages((prev) =>
             prev.includes(code)
@@ -163,22 +270,13 @@ export default function Inpsect() {
                 {loading ? (
                     <div className="skeleton h-[44px] w-full" />
                 ) : (
-                    <select
-                        id="tokenizer-select"
+                    <TokenizerPicker
                         value={selectedTokenizer}
-                        onChange={(e) => setSelectedTokenizer(e.target.value)}
-                        className="card bg-panel text-charcoal text-sm font-medium px-4 py-3 rounded-[var(--radius-card)] cursor-pointer outline-none appearance-none"
-                        disabled={tokenizers.length === 0}
-                    >
-                        {tokenizers.length === 0 && (
-                            <option value="">No tokenizers available</option>
-                        )}
-                        {tokenizers.map((model_id) => (
-                            <option key={model_id} value={model_id}>
-                                {model_id}
-                            </option>
-                        ))}
-                    </select>
+                        options={tokenizers}
+                        loading={loading}
+                        onChange={setSelectedTokenizer}
+                        onAdd={addTokenizer}
+                    />
                 )}
             </div>
 
@@ -311,22 +409,13 @@ export default function Inpsect() {
                         <label htmlFor="preview-tokenizer-select" className="text-xs font-medium text-muted">
                             Tokenizer
                         </label>
-                        <select
-                            id="preview-tokenizer-select"
+                        <TokenizerPicker
                             value={previewTokenizer}
-                            onChange={(e) => setPreviewTokenizer(e.target.value)}
-                            className="bg-canvas text-charcoal text-sm font-medium px-4 py-3 rounded-[var(--radius-card)] border border-soft-border cursor-pointer outline-none appearance-none"
-                            disabled={tokenizers.length === 0}
-                        >
-                            {tokenizers.length === 0 && (
-                                <option value="">No tokenizers available</option>
-                            )}
-                            {tokenizers.map((model_id) => (
-                                <option key={model_id} value={model_id}>
-                                    {model_id}
-                                </option>
-                            ))}
-                        </select>
+                            options={tokenizers}
+                            loading={loading}
+                            onChange={setPreviewTokenizer}
+                            onAdd={addTokenizer}
+                        />
                     </div>
 
                     {/* Text input */}
