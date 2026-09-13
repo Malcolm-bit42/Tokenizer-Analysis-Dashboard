@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router";
 import { Hero } from "./components/hero";
 import { Nav } from "./components/nav";
+import { Footer } from "./components/footer";
 // Every common component should be placed here, etc, navbar, footer, etc..
 
 const RootLayout: React.FC = (): React.ReactElement => {
@@ -37,6 +38,7 @@ const RootLayout: React.FC = (): React.ReactElement => {
         {/* <Button text="Buttonlkfihwfihhdwh Vjdhd" action={(e) => alert("Hello World")}  /> */}
         <Outlet />
       </main>
+      <Footer />
     </>
   );
 };

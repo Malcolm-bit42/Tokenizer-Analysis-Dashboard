@@ -57,7 +57,7 @@ export default function Compare () {
     const [sortBy, setSortBy] = useState<metric_t | "model_id" | "language">("avg_fertility");
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
-    const [ languages, setLanguages ] = useState<any[]>([]);
+    const [ _, setLanguages ] = useState<any[]>([]);
     const [langaugeMetrics, setLanguageMetrics] = useState<LanguageSummary[] | any>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [view, setView] = useState<"Language" | "Tokenizer">("Tokenizer");
@@ -156,7 +156,7 @@ export default function Compare () {
         return column.toLowerCase().replaceAll(".", "").replaceAll(" ", "_") as metric_t;
     }
 
-    console.log(langaugeMetrics)
+    // console.log(langaugeMetrics)
 
     const sortIndicator = (metric: string | null) => {
         if (!metric || metric !== sortBy) {
