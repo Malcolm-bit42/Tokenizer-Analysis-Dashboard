@@ -83,3 +83,14 @@ export async function getLanguageSummary(): Promise<LanguageSummary | any> {
     return data.languages;
 
 }
+
+export async function getRandomSentence(language: string): Promise<{ text: string; language: string }> {
+  // TODO: point this at your real endpoint once it exists
+  const res = await fetch(`${BASE_URL}/tokenizer/random_sentence?language=${language}`);
+
+  if (!res.ok) throw new Error("Failed to fetch random sentence: " + res.status);
+
+  const data = await res.json();
+
+  return data;
+}
