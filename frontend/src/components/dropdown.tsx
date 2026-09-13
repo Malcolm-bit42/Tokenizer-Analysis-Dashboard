@@ -109,49 +109,53 @@ export const DropDown: React.FC<IDropDown> = ({ options, action,placeholder = "S
         }
     };
 
-    // const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        
-    //     if (!isOpen && e.key !== "Escape") setIsOpen(true);
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!isOpen && e.key !== "Escape") setIsOpen(true);
 
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                setHighlightedIndex((prev) =>
+                    prev < filteredOptions.length - 1 ? prev + 1 : 0
+                );
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                setHighlightedIndex((prev) =>
+                    prev > 0 ? prev - 1 : filteredOptions.length - 1
+                );
+                break;
+            case "Enter": {
+                e.preventDefault();
+                const trimmed = inputValue.trim();
+                const exactMatch = options.find((opt) => opt.toLowerCase() === trimmed.toLowerCase());
 
-    //     switch (e.key) {
-    //         case "ArrowDown":
-    //             e.preventDefault();
-    //             setHighlightedIndex((prev) =>
-    //                 prev < filteredOptions.length - 1 ? prev + 1 : 0
-    //             );
-    //             break;
-    //         case "ArrowUp":
-    //             e.preventDefault();
-    //             setHighlightedIndex((prev) =>
-    //                 prev > 0 ? prev - 1 : filteredOptions.length - 1
-    //             );
-    //             break;
-    //         case "Enter":
-    //             e.preventDefault();
-    //             if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
-    //                 selectOption(filteredOptions[highlightedIndex]);
-    //             } else if (filteredOptions.length > 0) {
-    //                 // Auto-select the top match
-    //                 selectOption(filteredOptions[0]);
-    //             } else if (!pureSearch && inputValue.trim()) {
-    //                 // No matches + not pure search → use custom text
-    //                 handleClose();
-    //             }
-    //             break;
-    //         case "Escape":
-    //             setIsOpen(false);
-    //             setHighlightedIndex(-1);
-    //             inputRef.current?.blur();
-    //             break;
-    //     }
-    // };
+                if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+                    // User explicitly arrow-keyed to a suggestion — use it.
+                    selectOption(filteredOptions[highlightedIndex]);
+                } else if (exactMatch) {
+                    // What they typed matches an existing tokenizer exactly.
+                    selectOption(exactMatch);
+                } else if (!pureSearch && trimmed) {
+                    // Anything else (including a partial overlap with an existing entry)
+                    // is treated as a brand-new custom value, not auto-corrected.
+                    handleClose();
+                }
+                break;
+            }
+            case "Escape":
+                setIsOpen(false);
+                setHighlightedIndex(-1);
+                inputRef.current?.blur();
+                break;
+        }
+    };
 
     return (
         <div ref={containerRef} className={`relative text-[14px] flex flex-col gap-2 bg-panel text-muted rounded-lg w-full max-w-[400px] outline-none px-[1rem] py-[.5rem] border-[0.1px] border-[#ddd] ${disbale ? "opacity-50 cursor-default pointer-events-none" : "opacity-100 cursor-pointer pointer-events-auto"}`}>
             <label className="section-label">{placeholder}</label>
 
-            <input ref={inputRef} type="text" value={inputValue} onChange={handleInputChange} onFocus={() => setIsOpen(true)} placeholder="Type to search..." className="w-full outline-none text-charcoal font-bold bg-transparent" autoComplete="off"/>
+            <input ref={inputRef} type="text" value={inputValue} onChange={handleInputChange} onFocus={() => setIsOpen(true)} onKeyDown={handleKeyDown} placeholder="Type to search..." className="w-full outline-none text-charcoal font-bold bg-transparent" autoComplete="off"/>
 
             {isOpen && filteredOptions.length > 0 && (
                 <ul className="absolute left-0 top-full mt-1 w-full max-h-[200px] overflow-y-auto bg-panel border-[0.1px] border-[#ddd] rounded-lg shadow-lg z-50">
@@ -166,6 +170,15 @@ export const DropDown: React.FC<IDropDown> = ({ options, action,placeholder = "S
                             {option}
                         </li>
                     ))}
+                    {!pureSearch && inputValue.trim() !== "" &&
+                        !options.some((opt) => opt.toLowerCase() === inputValue.trim().toLowerCase()) && (
+                        <li
+                            onMouseDown={(e) => { e.preventDefault(); handleClose(); }}
+                            className="px-[1rem] py-[.5rem] cursor-pointer text-muted text-[13px] border-t-[0.1px] border-t-[#ddd] hover:bg-[#eae8e3] transition-colors"
+                        >
+                            Press <kbd className="font-bold text-charcoal">Enter</kbd> to add "<span className="font-bold text-charcoal">{inputValue.trim()}</span>" as new
+                        </li>
+                    )}
                 </ul>
             )}
 
