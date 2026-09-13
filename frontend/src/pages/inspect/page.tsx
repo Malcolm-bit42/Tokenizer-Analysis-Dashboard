@@ -1,7 +1,66 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
 import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
+import { METRIC_INFO } from "../../components/metricsdescription";
+import { MetricInfo } from "../metricinfo";
 import "./style.css";
+
+// Circular progress ring for a single metric value (e.g. fertility, compression).
+function MetricRing({
+    value,
+    label,
+    description,
+    max = 1,
+}: {
+    value: number;
+    label: string;
+    description?: string;
+    max?: number;
+}) {
+    const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+    return (
+        <div className="metric-ring-wrap">
+            <div className="metric-ring" style={{ "--ring-progress": `${percentage * 3.6}deg` } as React.CSSProperties}>
+                <div className="metric-ring-inner">
+                    <strong>{value.toFixed(2)}</strong>
+                </div>
+            </div>
+            <span className="metric-ring-label">
+                {label}
+                {description && <MetricInfo description={description} />}
+            </span>
+        </div>
+    );
+}
+
+// Horizontal progress bar for a single metric value (e.g. precision, recall, F1).
+function MetricBar({
+    label,
+    value,
+    description,
+    max = 1,
+    suffix = "",
+}: {
+    label: string;
+    value: number;
+    description?: string;
+    max?: number;
+    suffix?: string;
+}) {
+    const width = Math.max(4, Math.min(100, (value / max) * 100));
+    return (
+        <div className="metric-bar-row">
+            <div className="metric-bar-label">
+                <span>
+                    {label}
+                    {description && <MetricInfo description={description} />}
+                </span>
+                <b>{value.toFixed(3)}{suffix}</b>
+            </div>
+            <div className="metric-bar-track"><span style={{ width: `${width}%` }} /></div>
+        </div>
+    );
+}
 
 // Searchable tokenizer input: shows a filtered dropdown of existing tokenizers,
 // and lets the user type a brand-new Hugging Face tokenizer id to use on the fly.
@@ -353,22 +412,28 @@ export default function Inpsect() {
                                     ) : (
                                         <div className="flex flex-col gap-3">
                                             {efficiency && (
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-2">
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Efficiency
                                                     </p>
-                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-charcoal">
-                                                        <span className="text-muted">Token count</span>
-                                                        <span className="text-right font-mono">{efficiency.token_count}</span>
-
-                                                        <span className="text-muted">Fertility</span>
-                                                        <span className="text-right font-mono">{efficiency.fertility.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Compression</span>
-                                                        <span className="text-right font-mono">{efficiency.compression.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Token premium</span>
-                                                        <span className="text-right font-mono">{efficiency.token_premium.toFixed(3)}</span>
+                                                    <div className="rings">
+                                                        <MetricRing
+                                                            value={efficiency.fertility}
+                                                            label="fertility"
+                                                            description={METRIC_INFO.fertility}
+                                                            max={Math.max(1, efficiency.fertility)}
+                                                        />
+                                                        <MetricRing
+                                                            value={efficiency.compression}
+                                                            label="compression"
+                                                            description={METRIC_INFO.compression}
+                                                            max={Math.max(1, efficiency.compression)}
+                                                        />
+                                                        <div className="mini-stat">
+                                                            <b>{efficiency.token_count.toLocaleString()}</b>
+                                                            <span>tokens<MetricInfo description={METRIC_INFO.token_count} /></span>
+                                                            <em>premium {efficiency.token_premium.toFixed(2)}<MetricInfo description={METRIC_INFO.token_premium} /></em>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
@@ -378,16 +443,9 @@ export default function Inpsect() {
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Linguistic
                                                     </p>
-                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-charcoal">
-                                                        <span className="text-muted">Precision</span>
-                                                        <span className="text-right font-mono">{linguistic.precision.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Recall</span>
-                                                        <span className="text-right font-mono">{linguistic.recall.toFixed(3)}</span>
-
-                                                        <span className="text-muted">F1</span>
-                                                        <span className="text-right font-mono">{linguistic.f1.toFixed(3)}</span>
-                                                    </div>
+                                                    <MetricBar label="Precision" value={linguistic.precision} description={METRIC_INFO.precision} />
+                                                    <MetricBar label="Recall" value={linguistic.recall} description={METRIC_INFO.recall} />
+                                                    <MetricBar label="F1 score" value={linguistic.f1} description={METRIC_INFO.f1} />
                                                 </div>
                                             )}
                                         </div>

@@ -1,0 +1,79 @@
+.metric-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: 0.3rem;
+}
+
+.metric-info-icon {
+  border: 1px solid var(--color-soft-border, #e4dff5);
+  background: var(--color-canvas, #f6f3ff);
+  padding: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--color-muted, #726d8a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.metric-info-icon:hover {
+  color: var(--color-primary-dark, #5233e0);
+  border-color: var(--color-strong-border, #cabdf2);
+}
+
+.metric-info-popover {
+  position: absolute;
+  z-index: 40;
+  top: 130%;
+  left: 0;
+  width: 220px;
+  background: var(--color-panel, #ffffff);
+  border: 1px solid var(--color-soft-border, #e4dff5);
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-pop, 0 20px 44px -16px rgba(85, 55, 210, 0.34));
+  padding: 0.85rem 1.5rem 0.85rem 0.9rem;
+  animation: metric-info-in 0.15s ease both;
+}
+
+@keyframes metric-info-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metric-info-popover p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-charcoal, #201d2e);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.metric-info-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  border: none;
+  background: none;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--color-muted, #726d8a);
+  cursor: pointer;
+  padding: 0.15rem;
+}
+
+.metric-info-close:hover {
+  color: var(--color-bad, #e1476b);
+}
