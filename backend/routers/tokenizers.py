@@ -230,3 +230,17 @@ def get_language_summary():
         })
 
     return {"languages": summary}
+
+@router.get("/random_sentence")
+def get_random_sentence(language: str):
+    if language not in flores_data:
+        raise HTTPException(status_code=404, detail=f"No sentence data found for language '{language}'")
+
+    sentences = flores_data[language]
+    if not sentences:
+        raise HTTPException(status_code=404, detail=f"No sentences available for '{language}'")
+
+    return {
+        "text": random.choice(sentences),
+        "language": language
+    }

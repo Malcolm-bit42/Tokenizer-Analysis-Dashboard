@@ -1,6 +1,73 @@
 import { useEffect, useState } from "react";
-import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
-import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
+import { getLanguages, getMetrics, getTokenizers } from "../../api/api";
+import type { MetricsResponse } from "../../utils/types";
+import { METRIC_INFO } from "../../components/metricsdescription";
+import { MetricInfo } from "../metricinfo";
+import { DropDown } from "../../components/dropdown";
+import { LiveWindow } from "./live_window";
+
+// Circular progress ring for a single metric value (e.g. fertility, compression).
+// Pure Tailwind + one inline conic-gradient (the only part that has to be dynamic per value).
+function MetricRing({
+    value,
+    label,
+    description,
+    max = 1,
+}: {
+    value: number;
+    label: string;
+    description?: string;
+    max?: number;
+}) {
+    const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <div
+                className="relative w-16 h-16 rounded-full"
+                style={{ background: `conic-gradient(var(--color-good) ${percentage}%, var(--color-soft-border) 0)` }}
+            >
+                <div className="absolute inset-1 bg-panel rounded-full flex items-center justify-center">
+                    <strong className="text-[11px] font-bold text-charcoal">{value.toFixed(2)}</strong>
+                </div>
+            </div>
+            <span className="text-[11px] text-muted flex items-center">
+                {label}
+                {description && <MetricInfo description={description} />}
+            </span>
+        </div>
+    );
+}
+
+// Horizontal progress bar for a single metric value (e.g. precision, recall, F1).
+function MetricBar({
+    label,
+    value,
+    description,
+    max = 1,
+    suffix = "",
+}: {
+    label: string;
+    value: number;
+    description?: string;
+    max?: number;
+    suffix?: string;
+}) {
+    const width = Math.max(4, Math.min(100, (value / max) * 100));
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-xs">
+                <span className="text-muted flex items-center">
+                    {label}
+                    {description && <MetricInfo description={description} />}
+                </span>
+                <b className="text-charcoal">{value.toFixed(3)}{suffix}</b>
+            </div>
+            <div className="w-full h-1.5 bg-soft-border rounded-pill overflow-hidden">
+                <span className="block h-full bg-charcoal rounded-pill" style={{ width: `${width}%` }} />
+            </div>
+        </div>
+    );
+}
 
 export default function Inpsect() {
     // ─── Tokenizer dropdown state ───
@@ -18,13 +85,6 @@ export default function Inpsect() {
     const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
     const [metricsLoading, setMetricsLoading] = useState<boolean>(false);
     const [metricsError, setMetricsError] = useState<string | null>(null);
-
-    // ─── Tokenize preview state (separate box, own tokenizer selection) ───
-    const [previewTokenizer, setPreviewTokenizer] = useState<string>("");
-    const [previewText, setPreviewText] = useState<string>("");
-    const [previewResult, setPreviewResult] = useState<TokenizeResponse | null>(null);
-    const [previewLoading, setPreviewLoading] = useState<boolean>(false);
-    const [previewError, setPreviewError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -47,7 +107,6 @@ export default function Inpsect() {
                 // Default to the first tokenizer once options arrive
                 if (tokenizerList.length > 0) {
                     setSelectedTokenizer(tokenizerList[0]);
-                    setPreviewTokenizer(tokenizerList[0]);
                 }
 
                 // Default to all languages selected
@@ -105,37 +164,12 @@ export default function Inpsect() {
         };
     }, [selectedTokenizer, selectedLanguages, languages]);
 
-    // ─── Tokenize preview: debounced call whenever tokenizer or text changes ───
-    useEffect(() => {
-        if (!previewTokenizer || previewText.trim().length === 0) {
-            setPreviewResult(null);
-            setPreviewError(null);
-            return;
-        }
-
-        let cancelled = false;
-        const timer = setTimeout(async () => {
-            setPreviewLoading(true);
-            setPreviewError(null);
-
-            try {
-                const result = await tokeniseText(previewTokenizer, previewText);
-                if (!cancelled) setPreviewResult(result);
-            } catch (err) {
-                if (!cancelled) {
-                    setPreviewError(err instanceof Error ? err.message : "Failed to tokenize text.");
-                    setPreviewResult(null);
-                }
-            } finally {
-                if (!cancelled) setPreviewLoading(false);
-            }
-        }, 400); // debounce so we don't hit the API on every keystroke
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timer);
-        };
-    }, [previewTokenizer, previewText]);
+    // Lets DropDown register a tokenizer id the user typed that wasn't in the original list.
+    const addTokenizer = (value: string) => {
+        setTokenizers((prev) =>
+            prev.some((x) => x.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]
+        );
+    };
 
     const toggleLanguage = (code: string) => {
         setSelectedLanguages((prev) =>
@@ -148,36 +182,24 @@ export default function Inpsect() {
     return (
         <section className="flex flex-col gap-6 px-[4rem] mt-14">
             {error && (
-                <p className="text-sm text-[color:var(--color-bad)]">
+                <p className="text-sm text-bad">
                     {error}
                 </p>
             )}
 
             {/* ─── Tokenizer dropdown ─── */}
             <div className="flex flex-col gap-2 w-[320px]">
-                <label htmlFor="tokenizer-select" className="section-label">
-                    Tokenizer
-                </label>
-
                 {loading ? (
                     <div className="skeleton h-[44px] w-full" />
                 ) : (
-                    <select
-                        id="tokenizer-select"
-                        value={selectedTokenizer}
-                        onChange={(e) => setSelectedTokenizer(e.target.value)}
-                        className="card bg-panel text-charcoal text-sm font-medium px-4 py-3 rounded-[var(--radius-card)] cursor-pointer outline-none appearance-none"
-                        disabled={tokenizers.length === 0}
-                    >
-                        {tokenizers.length === 0 && (
-                            <option value="">No tokenizers available</option>
-                        )}
-                        {tokenizers.map((model_id) => (
-                            <option key={model_id} value={model_id}>
-                                {model_id}
-                            </option>
-                        ))}
-                    </select>
+                    <DropDown
+                        options={tokenizers}
+                        placeholder="Tokenizer"
+                        action={(e: any) => {
+                            setSelectedTokenizer(e.target.value);
+                            addTokenizer(e.target.value);
+                        }}
+                    />
                 )}
             </div>
 
@@ -200,7 +222,7 @@ export default function Inpsect() {
                                     key={code}
                                     type="button"
                                     onClick={() => toggleLanguage(code)}
-                                    className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-[var(--radius-pill)] border transition-base cursor-pointer ${
+                                    className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-pill border transition-base cursor-pointer ${
                                         isActive
                                             ? "bg-charcoal text-panel border-charcoal"
                                             : "bg-panel text-muted border-soft-border hover:border-strong-border"
@@ -219,7 +241,7 @@ export default function Inpsect() {
                 <p className="section-label">Metrics</p>
 
                 {metricsError && (
-                    <p className="text-sm text-[color:var(--color-bad)]">
+                    <p className="text-sm text-bad">
                         {metricsError}
                     </p>
                 )}
@@ -254,41 +276,45 @@ export default function Inpsect() {
                                     ) : (
                                         <div className="flex flex-col gap-3">
                                             {efficiency && (
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-2">
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Efficiency
                                                     </p>
-                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-charcoal">
-                                                        <span className="text-muted">Token count</span>
-                                                        <span className="text-right font-mono">{efficiency.token_count}</span>
-
-                                                        <span className="text-muted">Fertility</span>
-                                                        <span className="text-right font-mono">{efficiency.fertility.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Compression</span>
-                                                        <span className="text-right font-mono">{efficiency.compression.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Token premium</span>
-                                                        <span className="text-right font-mono">{efficiency.token_premium.toFixed(3)}</span>
+                                                    <div className="flex items-center gap-4">
+                                                        <MetricRing
+                                                            value={efficiency.fertility}
+                                                            label="fertility"
+                                                            description={METRIC_INFO.fertility}
+                                                            max={Math.max(1, efficiency.fertility)}
+                                                        />
+                                                        <MetricRing
+                                                            value={efficiency.compression}
+                                                            label="compression"
+                                                            description={METRIC_INFO.compression}
+                                                            max={Math.max(1, efficiency.compression)}
+                                                        />
+                                                        <div className="flex flex-col gap-0.5 text-xs">
+                                                            <b className="text-charcoal">{efficiency.token_count.toLocaleString()}</b>
+                                                            <span className="text-muted flex items-center">
+                                                                tokens<MetricInfo description={METRIC_INFO.token_count} />
+                                                            </span>
+                                                            <em className="text-muted not-italic flex items-center">
+                                                                premium {efficiency.token_premium.toFixed(2)}
+                                                                <MetricInfo description={METRIC_INFO.token_premium} />
+                                                            </em>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {linguistic && (
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-2">
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Linguistic
                                                     </p>
-                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-charcoal">
-                                                        <span className="text-muted">Precision</span>
-                                                        <span className="text-right font-mono">{linguistic.precision.toFixed(3)}</span>
-
-                                                        <span className="text-muted">Recall</span>
-                                                        <span className="text-right font-mono">{linguistic.recall.toFixed(3)}</span>
-
-                                                        <span className="text-muted">F1</span>
-                                                        <span className="text-right font-mono">{linguistic.f1.toFixed(3)}</span>
-                                                    </div>
+                                                    <MetricBar label="Precision" value={linguistic.precision} description={METRIC_INFO.precision} />
+                                                    <MetricBar label="Recall" value={linguistic.recall} description={METRIC_INFO.recall} />
+                                                    <MetricBar label="F1 score" value={linguistic.f1} description={METRIC_INFO.f1} />
                                                 </div>
                                             )}
                                         </div>
@@ -300,93 +326,13 @@ export default function Inpsect() {
                 )}
             </div>
 
-            {/* ─── Tokenize Preview ─── */}
-            <div className="card flex flex-col gap-5 p-6 mt-4 mb-14">
-                <p className="section-label">Tokenize Preview</p>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                    {/* Tokenizer dropdown for this box */}
-                    <div className="flex flex-col gap-2 w-full md:w-[280px]">
-                        <label htmlFor="preview-tokenizer-select" className="text-xs font-medium text-muted">
-                            Tokenizer
-                        </label>
-                        <select
-                            id="preview-tokenizer-select"
-                            value={previewTokenizer}
-                            onChange={(e) => setPreviewTokenizer(e.target.value)}
-                            className="bg-canvas text-charcoal text-sm font-medium px-4 py-3 rounded-[var(--radius-card)] border border-soft-border cursor-pointer outline-none appearance-none"
-                            disabled={tokenizers.length === 0}
-                        >
-                            {tokenizers.length === 0 && (
-                                <option value="">No tokenizers available</option>
-                            )}
-                            {tokenizers.map((model_id) => (
-                                <option key={model_id} value={model_id}>
-                                    {model_id}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Text input */}
-                    <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
-                            Text
-                        </label>
-                        <textarea
-                            id="preview-text-input"
-                            value={previewText}
-                            onChange={(e) => setPreviewText(e.target.value)}
-                            placeholder="Type or paste text to see how the tokenizer splits it..."
-                            rows={3}
-                            className="bg-canvas text-charcoal text-sm px-4 py-3 rounded-[var(--radius-card)] border border-soft-border outline-none resize-none"
-                        />
-                    </div>
-                </div>
-
-                {previewError && (
-                    <p className="text-sm text-[color:var(--color-bad)]">
-                        {previewError}
-                    </p>
-                )}
-
-                {/* Dark token preview panel */}
-                <div className="card-dark p-5 min-h-[120px] flex flex-col gap-4">
-                    {previewText.trim().length === 0 ? (
-                        <p className="text-sm text-[color:var(--color-dark-muted)]">
-                            Enter some text above to see its tokens.
-                        </p>
-                    ) : previewLoading ? (
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: 10 }).map((_, i) => (
-                                <div key={i} className="skeleton h-[28px] w-[60px]" />
-                            ))}
-                        </div>
-                    ) : previewResult ? (
-                        <>
-                            <p className="text-xs font-mono uppercase tracking-wide text-[color:var(--color-dark-muted)]">
-                                {previewResult.token_count} tokens · {previewResult.model_id}
-                            </p>
-
-                            <div className="flex flex-wrap gap-2">
-                                {previewResult.tokens.map((token, i) => (
-                                    <span
-                                        key={i}
-                                        title={`id: ${previewResult.token_ids[i]}`}
-                                        className={`font-mono text-xs px-2 py-1 rounded-md border border-[color:var(--color-dark-surface)] ${
-                                            i % 2 === 0
-                                                ? "bg-[color:var(--color-dark-surface)] text-panel"
-                                                : "bg-transparent text-panel"
-                                        }`}
-                                    >
-                                        {token}
-                                    </span>
-                                ))}
-                            </div>
-                        </>
-                    ) : null}
-                </div>
-            </div>
+            {/* ─── Live tokenization ─── */}
+            <LiveWindow
+                tokenizers={tokenizers}
+                loading={loading}
+                languages={languages}
+                onAddTokenizer={addTokenizer}
+            />
         </section>
     );
 }
