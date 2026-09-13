@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getLanguages, getMetrics, getTokenizers, tokeniseText } from "../../api/api";
+import { getLanguages, getMetrics, getRandomSentence, getTokenizers, tokeniseText } from "../../api/api";
 import type { MetricsResponse, TokenizeResponse } from "../../utils/types";
 import { METRIC_INFO } from "../../components/metricsdescription";
 import { MetricInfo } from "../metricinfo";
@@ -186,6 +186,11 @@ export default function Inpsect() {
     const [previewLoading, setPreviewLoading] = useState<boolean>(false);
     const [previewError, setPreviewError] = useState<string | null>(null);
 
+    // ─── Random sentence generator ───
+    const [randomLanguage, setRandomLanguage] = useState<string>("");
+    const [randomLoading, setRandomLoading] = useState<boolean>(false);
+    const [randomError, setRandomError] = useState<string | null>(null);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -212,6 +217,12 @@ export default function Inpsect() {
 
                 // Default to all languages selected
                 setSelectedLanguages(Object.keys(languageMap));
+
+                // Default the random-sentence generator to the first language
+                const languageCodes = Object.keys(languageMap);
+                if (languageCodes.length > 0) {
+                    setRandomLanguage(languageCodes[0]);
+                }
             } catch (err) {
                 if (!cancelled) {
                     setError(err instanceof Error ? err.message : "Failed to load options.");
@@ -310,6 +321,24 @@ export default function Inpsect() {
                 ? prev.filter((lang) => lang !== code)
                 : [...prev, code]
         );
+    };
+
+    // Fetches a random sentence in the chosen language and drops it into the preview box.
+    const handleGenerateRandom = async () => {
+        if (!randomLanguage) return;
+
+        setRandomLoading(true);
+        setRandomError(null);
+
+        try {
+            const languageName = languages[randomLanguage] ?? randomLanguage;
+            const result = await getRandomSentence(languageName);
+            setPreviewText(result.text);
+        } catch (err) {
+            setRandomError(err instanceof Error ? err.message : "Failed to generate a random sentence.");
+        } finally {
+            setRandomLoading(false);
+        }
     };
 
     return (
@@ -478,9 +507,34 @@ export default function Inpsect() {
 
                     {/* Text input */}
                     <div className="flex flex-col gap-2 w-full">
-                        <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
-                            Text
-                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                            <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
+                                Text
+                            </label>
+
+                            {/* ─── Random sentence generator ─── */}
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={randomLanguage}
+                                    onChange={(e) => setRandomLanguage(e.target.value)}
+                                    disabled={loading || Object.keys(languages).length === 0}
+                                    aria-label="Language for random sentence"
+                                    className="bg-canvas text-charcoal text-xs font-medium px-2 py-1.5 rounded-[var(--radius-sm)] border border-soft-border cursor-pointer outline-none appearance-none"
+                                >
+                                    {Object.entries(languages).map(([code, name]) => (
+                                        <option key={code} value={code}>{name}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateRandom}
+                                    disabled={randomLoading || !randomLanguage}
+                                    className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-pill)] border border-soft-border text-muted hover:border-strong-border transition-base cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {randomLoading ? "Generating…" : "🎲 Random sentence"}
+                                </button>
+                            </div>
+                        </div>
                         <textarea
                             id="preview-text-input"
                             value={previewText}
@@ -489,6 +543,11 @@ export default function Inpsect() {
                             rows={3}
                             className="bg-canvas text-charcoal text-sm px-4 py-3 rounded-[var(--radius-card)] border border-soft-border outline-none resize-none"
                         />
+                        {randomError && (
+                            <p className="text-xs text-[color:var(--color-bad)]">
+                                {randomError}
+                            </p>
+                        )}
                     </div>
                 </div>
 
