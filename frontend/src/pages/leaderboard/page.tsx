@@ -57,17 +57,16 @@ export default function Compare () {
     const [sortBy, setSortBy] = useState<metric_t | "model_id" | "language">("avg_fertility");
     const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
-    const [ languages, setLanguages ] = useState<any[]>([]);
+    const [ _, setLanguages ] = useState<any[]>([]);
     const [langaugeMetrics, setLanguageMetrics] = useState<LanguageSummary[] | any>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
     const [view, setView] = useState<"Language" | "Tokenizer">("Tokenizer");
 
-    useEffect(() => {
-    setIsLoading(true);
+    const fetchInitialData = async () => {
+        setIsLoading(true);
+        setError(null);
 
-    let isMounted = true; // Prevents state updates if component unmounts mid-flight
-
-    async function fetchInitialData() {
         try {
         // 1. Fire all requests concurrently
         const [tokenizers, languagesData, modelSummaryData, languageSummaryData] = await Promise.all([
@@ -77,19 +76,16 @@ export default function Compare () {
             getLanguageSummary()
         ]);
 
-        // 2. Guard against updating state on an unmounted component
-        if (!isMounted) return;
-
-        // 3. Process and batch Tokenizers
+        // 2. Process and batch Tokenizers
         setTokenizerModels(tokenizers);
         if (tokenizers.length > 0) {
             setSelectedTokenizer(tokenizers[0]);
         }
 
-        // 4. Process and batch Languages
+        // 3. Process and batch Languages
         setLanguages(Object.values(languagesData));
 
-        // 5. Process and batch Model Summaries
+        // 4. Process and batch Model Summaries
         setMetrics(modelSummaryData);
         const saved = loadSavedModels();
 
@@ -103,20 +99,16 @@ export default function Compare () {
             saveModels(defaultModels);
         }
 
-        } catch (error) {
-        console.error("Failed to load initial page data:", error);
-        // Optional: setAnErrorState(true);
+        } catch (err: any) {
+            console.error("Failed to load initial page data:", err);
+            setError(err?.message || "An unexpected error occurred while loading leaderboard data.");
         } finally {
-            if (isMounted) setIsLoading(false);
+            setIsLoading(false);
         }
-    }
-
-    fetchInitialData();
-
-    // Cleanup function to prevent memory leaks
-    return () => {
-        isMounted = false;
     };
+
+    useEffect(() => {
+        fetchInitialData();
     }, []);
 
     const tableColumns: string[] = ["#", view, ...availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map(m => m.label), ""];
@@ -156,7 +148,7 @@ export default function Compare () {
         return column.toLowerCase().replaceAll(".", "").replaceAll(" ", "_") as metric_t;
     }
 
-    console.log(langaugeMetrics)
+    // console.log(langaugeMetrics)
 
     const sortIndicator = (metric: string | null) => {
         if (!metric || metric !== sortBy) {
@@ -190,7 +182,20 @@ export default function Compare () {
     // be able to filter metrics summary based on langauge?? doe sit returnn the avg of all?? hmmmm.
     if (isLoading) return <LeaderBoardSkeleton />;
 
-    // console.log(metrics)
+    if (error) return (
+        <section className="w-full flex flex-col items-center justify-center py-20 gap-6">
+            <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-6 max-w-lg w-full text-center">
+                <p className="text-[#991B1B] font-bold text-lg mb-2">Something went wrong</p>
+                <p className="text-[#B91C1C] text-sm mb-4">{error}</p>
+                <button
+                    onClick={fetchInitialData}
+                    className="bg-[#000] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#333] transition-colors cursor-pointer"
+                >
+                    Try Again
+                </button>
+            </div>
+        </section>
+    );
 
     return (
         <>

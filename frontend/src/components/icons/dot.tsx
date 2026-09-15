@@ -4,7 +4,7 @@
 //   --color-info: #2563eb;
 
 interface IDot {
-    color: "#22a06b" | "#e45a3b" | "#d97706" | "#2563eb" | string;
+    color?: "#22a06b" | "#e45a3b" | "#d97706" | "#2563eb" | string;
 }
 
 export const Dot: React.FC<IDot> = ({ color = "#22a06b"}) => {
