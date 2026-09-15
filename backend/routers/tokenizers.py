@@ -6,6 +6,7 @@ from pathlib import Path
 from utils.constants import LANGUAGES
 from typing import Optional, Literal
 import json
+import random
 
 # -------------------
 # HELPERS & CONSTANTS
