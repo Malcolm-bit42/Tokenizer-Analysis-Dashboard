@@ -2,11 +2,20 @@ import type { languages_t, LanguageSummary, metric_t, MetricsResponse, ModelSumm
 
 const BASE_URL: string = 'http://localhost:8000';
 
+async function extractErrorDetail(res: Response, fallback: string): Promise<string> {
+    try {
+        const body = await res.json();
+        if (body?.detail) return body.detail;
+    } catch {
+    }
+    return `${fallback} (HTTP ${res.status})`;
+}
+
 export async function getTokenizers(): Promise<string[]> {
     // this is a method to get all tokenizers predownloaded (fixed number)
     const response = await fetch(`${BASE_URL}/tokenizer`);
 
-    if (!response.ok) throw new Error("There was an error fetching the tokenizers. Please try again: " + response.status);
+    if (!response.ok) throw new Error(await extractErrorDetail(response, "Failed to fetch tokenizers"));
 
     const data = await response.json();
 
@@ -28,7 +37,7 @@ export async function getMetrics(model_id: string, languages?: languages_t, metr
 
     const res = await fetch(`${BASE_URL}/tokenizer/metrics?${params.toString()}`);
 
-    if (!res.ok) throw new Error('Failed to fetch metrics: ' + res.status);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch metrics'));
 
 
     return res.json();
@@ -39,7 +48,7 @@ export async function getLanguages():Promise<Record<string, string>> {
     const res = await fetch(`${BASE_URL}/tokenizer/languages`);
 
 
-    if (!res.ok) throw new Error('Failed to fetch languages: ' + res.status);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch languages'));
 
     const data = await res.json();
 
@@ -55,7 +64,7 @@ export async function tokeniseText(model_id: string, text: string): Promise<Toke
     });
 
 
-    if (!res.ok) throw new Error('Failed to tokenize text. Please try again : ' + res.status);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to tokenize text'));
     
     return res.json();
 
@@ -65,7 +74,7 @@ export async function getModelSummary(): Promise<ModelSummary | any> {
 
     const res = await fetch(`${BASE_URL}/tokenizer/summary/models`);
 
-    if (!res.ok) throw new Error('Failed to fetch model summary: ' + res.status);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch model summary'));
 
     const data = await res.json();
 
@@ -76,7 +85,7 @@ export async function getModelSummary(): Promise<ModelSummary | any> {
 export async function getLanguageSummary(): Promise<LanguageSummary | any> {
     const res = await fetch(`${BASE_URL}/tokenizer/summary/languages`);
 
-    if (!res.ok) throw new Error("Failed to fetch langauge summary: " + res.body);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch language summary'));
 
     const data = await res.json();
 
@@ -88,7 +97,7 @@ export async function getRandomSentence(language: string): Promise<{ text: strin
   // TODO: point this at your real endpoint once it exists
   const res = await fetch(`${BASE_URL}/tokenizer/random_sentence?language=${language}`);
 
-  if (!res.ok) throw new Error("Failed to fetch random sentence: " + res.status);
+    if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch random sentence'));
 
   const data = await res.json();
 
