@@ -6,14 +6,10 @@ from pathlib import Path
 from utils.constants import LANGUAGES
 from typing import Optional, Literal
 import json
-<<<<<<< HEAD
-import random
-=======
 import logging
 import random
 
 logger = logging.getLogger(__name__)
->>>>>>> 2b1166e953ead8105cac04799b63cfe16f48dbbe
 
 # -------------------
 # HELPERS & CONSTANTS
