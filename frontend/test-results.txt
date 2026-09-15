@@ -1,0 +1,134 @@
+
+> frontend@0.0.0 test
+> vitest
+
+
+[1m[30m[44m DEV [49m[39m[22m [34mv4.1.11 [39m[90mC:/Users/leseg/documents/capstone/tad-capstone/frontend[39m
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mrenders Compare Tokenizers page
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mrenders tokenizer dropdowns
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mloads tokenizers from backend
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mloads languages from backend
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muser can select both tokenizers
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng: [32m'English'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muser can select a language
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdoes not submit without selecting tokenizer 1
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdoes not submit without selecting tokenizer 1
+[22m[39mPlease select Tokenizer 1
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muses default text when no text or file is provided
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muses default text when no text or file is provided
+[22m[39mEnglish
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muses default text when no text or file is provided
+[22m[39mText being submitted: This is a default sentence.
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2muses default text when no text or file is provided
+[22m[39m{
+  data1: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  },
+  data2: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  }
+}
+{
+  data1: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  },
+  data2: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  }
+}
+{
+  data1: { tokens: [ [32m'This'[39m, [32m'is'[39m, [32m'a'[39m, [32m'default'[39m, [32m'sentence.'[39m ] },
+  data2: { tokens: [ [32m'This'[39m, [32m'is'[39m, [32m'a'[39m, [32m'default'[39m, [32m'sentence.'[39m ] }
+}
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2maccepts a text file
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2maccepts a text file
+[22m[39mHello World
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdisplays tokenized text returned by backend
+[22m[39m[ [32m'tokenizer-one'[39m, [32m'tokenizer-two'[39m ]
+{ eng_Latn: [32m'English'[39m, afr_Latn: [32m'Afrikaans'[39m }
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdisplays tokenized text returned by backend
+[22m[39mEnglish
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdisplays tokenized text returned by backend
+[22m[39mText being submitted: Hello world
+
+[90mstdout[2m | src/pages/compare/pages.test.tsx[2m > [22m[2mCompare Tokenizers[2m > [22m[2mdisplays tokenized text returned by backend
+[22m[39m{
+  data1: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  },
+  data2: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  }
+}
+{
+  data1: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  },
+  data2: {
+    model_id: [32m'test'[39m,
+    efficiency: { English: [36m[Object][39m },
+    linguistic: { English: [36m[Object][39m }
+  }
+}
+{
+  data1: { tokens: [ [32m'Hello'[39m, [32m'world'[39m ] },
+  data2: { tokens: [ [32m'Hello'[39m, [32m'world'[39m ] }
+}
+
+ [32m✓[39m src/pages/compare/pages.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 757[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 23:43:13
+[2m   Duration [22m 3.98s[2m (transform 162ms, setup 458ms, import 223ms, tests 757ms, environment 2.21s)[22m
+
+[1m[30m[42m PASS [49m[39m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
