@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { getLanguages, getLanguageSummary, getModelSummary, getTokenizers } from "../../api/api";
+import { getLanguages, getLanguageSummary, getMetrics, getModelSummary, getTokenizers } from "../../api/api";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
 import type { LanguageSummary, ModelSummary } from "../../utils/types";
@@ -60,6 +60,7 @@ export default function Compare () {
     const [ _, setLanguages ] = useState<any[]>([]);
     const [langaugeMetrics, setLanguageMetrics] = useState<LanguageSummary[] | any>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isComputing, setIsComputing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [view, setView] = useState<"Language" | "Tokenizer">("Tokenizer");
 
@@ -161,8 +162,35 @@ export default function Compare () {
 
     const availableTokenizers = tokenizerModels.filter(tokenizer => !addedTokenisers.includes(tokenizer));
 
-    const handleAddTokenizer = () => {
-        if (selectedTokenizer && !addedTokenisers.includes(selectedTokenizer)) {
+    const handleAddTokenizer = async () => {
+        if (!selectedTokenizer) return;
+
+        const isKnownModel = metrics.some(m => m.model_id === selectedTokenizer);
+
+        if (!isKnownModel) {
+            // Model not in cache — trigger backend compute + cache, then refresh summary
+            setIsComputing(true);
+            try {
+                // This hits GET /tokenizer/metrics which computes on cache-miss and writes to JSON
+                await getMetrics(selectedTokenizer);
+                // Re-fetch summaries so the new model's row appears in the table
+                const [updatedModels, updatedLanguages] = await Promise.all([
+                    getModelSummary(),
+                    getLanguageSummary()
+                ]);
+                setMetrics(updatedModels);
+                setLanguageMetrics(updatedLanguages);
+            } catch (err: any) {
+                setError(err?.message || `Failed to compute metrics for '${selectedTokenizer}'.`);
+                setIsComputing(false);
+                return;
+            } finally {
+                setIsComputing(false);
+            }
+        }
+
+        // Only add to the visible list if not already there
+        if (!addedTokenisers.includes(selectedTokenizer)) {
             const newAdded = [...addedTokenisers, selectedTokenizer];
             setAddedTokenisers(newAdded);
             saveModels(newAdded);
@@ -204,7 +232,7 @@ export default function Compare () {
                     <div className="flex gap-5">
                         <DropDown disbale={view === "Language"} options={availableTokenizers} placeholder="Add Model To Leaderboard" action={(e: any) => setSelectedTokenizer(e.target.value)} />
                         {/* <DropDown options={languages} placeholder="Select a Language" /> */}
-                        <Button action={handleAddTokenizer} text="+ Add tokenizer" className={`${view === "Language" && "pointer-events-none cursor-default"} !rounded-lg`}disabled={view === "Language"}/>
+                        <Button action={handleAddTokenizer} text={isComputing ? "Computing..." : "+ Add tokenizer"} className={`${view === "Language" && "pointer-events-none cursor-default"} !rounded-lg`}disabled={view === "Language" || isComputing}/>
                     </div>
 
                     <div className="flex gap-4 items-center">

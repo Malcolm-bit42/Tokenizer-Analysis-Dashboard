@@ -35,13 +35,13 @@ export const Nav = (path?: any) => {
         <nav className="flex sticky top-0 bg-canvas z-[9999] justify-between items-center py-2 text-sm border-b-[.1px] border-b-[#bbb] px-30">
             <section className="flex gap-5 text-muted items-center">
                 <img src="/ttad.png" className="w-[35px] h-[35px] cursor-pointer" onClick={() => naviagte("/")} />
-                <Link to={"/"} className={`${ path.path === "/" ? "bg-[#EBE9E4]" : null} px-4 py-2 hover:bg-[#EBE9E4] rounded-sm`}>
+                <Link to={"/"} className={`${ path.path === "/" ? "before:w-[35px]" : null} px-4 py-2  rounded-sm before:content-["] relative before:absolute before:bottom-[5px] before:h-[2.5px] before:w-[7.5px] before:bg-good hover:before:w-[35px] before:transition-all`}>
                     Inspect
                 </Link>
-                <Link to={"/compare"} className={`${ path.path === "/compare" ? "bg-[#EBE9E4]" : null} px-4 py-2 hover:bg-[#EBE9E4] rounded-sm`}>
+                <Link to={"/compare"} className={`${ path.path === "/compare" ? "before:w-[35px]" : null} px-4 py-2 before:content-["] relative before:absolute before:bottom-[5px] before:h-[2.5px] before:w-[7.5px] before:bg-bad hover:before:w-[35px] before:transition-all rounded-sm`}>
                     Compare
                 </Link>
-                <Link to={"/leaderboard"} className={`${ path.path === "/leaderboard" ? "bg-[#EBE9E4]" : null} px-4 py-2 hover:bg-[#EBE9E4] rounded-sm`}>
+                <Link to={"/leaderboard"} className={`${ path.path === "/leaderboard" ? "before:w-[35px]" : null} px-4 py-2 before:content-["] relative before:absolute before:bottom-[5px] before:h-[2.5px] before:w-[7.5px] before:bg-info hover:before:w-[35px] before:transition-all rounded-sm`}>
                     LeaderBoard
                 </Link>
 

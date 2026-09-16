@@ -50,8 +50,11 @@ def write_cache(data: dict):
 @router.get("/")
 def read_tokenizers():
     try:
-        t = tokenizer_registry.get_all_tokenizers()
-        return {"tokenizers": t}
+        t = set(tokenizer_registry.get_all_tokenizers())
+        # Merge in any models that have been dynamically computed and cached
+        cached = read_cache()
+        t.update(cached.keys())
+        return {"tokenizers": sorted(t)}
     except Exception as e:
         logger.error(f"Failed to list tokenizers: {e}")
         raise HTTPException(status_code=500, detail="Could not retrieve the list of available tokenizers.")
