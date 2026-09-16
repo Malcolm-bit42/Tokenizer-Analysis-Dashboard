@@ -133,16 +133,9 @@ export function LiveWindow({ tokenizers, loading, languages, onAddTokenizer }: L
 
     // Simple per-sentence efficiency stats for whatever is currently in the preview box.
     // fertility = tokens per word, compression = characters per token.
-    const previewWordCount = previewText.trim().length
-        ? previewText.trim().split(/\s+/).filter(Boolean).length
-        : 0;
-    const previewCharCount = previewText.length;
-    const previewFertility = previewResult && previewWordCount > 0
-        ? previewResult.token_count / previewWordCount
-        : null;
-    const previewCompression = previewResult && previewResult.token_count > 0
-        ? previewCharCount / previewResult.token_count
-        : null;
+    const previewtokens = previewResult ? previewResult.metrics.token_count : null;
+    const previewFertility = previewResult ? previewResult.metrics.fertility : null;
+    const previewCompression = previewResult ? previewResult.metrics.compression : null;
 
     return (
         <div className="card flex flex-col gap-5 p-6 mt-4 mb-14">
@@ -274,8 +267,18 @@ export function LiveWindow({ tokenizers, loading, languages, onAddTokenizer }: L
                         </div>
 
                         {/* ─── Live fertility/compression stats for this sample ─── */}
-                        {(previewFertility !== null || previewCompression !== null) && (
+                        {(previewFertility !== null || previewCompression !== null && previewtokens !== null) && (
                             <div className="flex gap-6 pt-3 mt-1 border-t border-dark-surface">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-[10px] uppercase tracking-wide text-dark-muted flex items-cente">
+                                        Tokens<MetricInfo description={METRIC_INFO.token_count} />
+                                    </span>
+
+                                    <b className="font-mono text-sm text-panel">
+                                        {previewtokens !== null ? previewtokens : "-"}
+                                    </b>
+
+                                </div>
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-[10px] uppercase tracking-wide text-dark-muted flex items-center">
                                         Fertility<MetricInfo description={METRIC_INFO.fertility} />
@@ -284,6 +287,7 @@ export function LiveWindow({ tokenizers, loading, languages, onAddTokenizer }: L
                                         {previewFertility !== null ? previewFertility.toFixed(3) : "—"}
                                     </b>
                                 </div>
+
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-[10px] uppercase tracking-wide text-dark-muted flex items-center">
                                         Compression<MetricInfo description={METRIC_INFO.compression} />
