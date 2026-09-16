@@ -5,6 +5,7 @@ import { getMetrics } from "../../api/api"
 import type { languages_t, metric_t } from "../../utils/types";
 import "./style.css";
 import {ScatterChart, Scatter,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer} from "recharts";
+import { DropDown } from "../../components/DropDown";
 
 //default language corpora sentences when language is selected
 const defaultSentences: Record<string, string> = {
@@ -433,29 +434,21 @@ export default function Compare() {
                     <div>{/* This is the drop down menu section for the component selecting tokenizer 1*/}
                         <label>Tokenizer 1: </label>
                         {/*This selects a tokenizer and stores it in the tokenizer 2*/}
-                        <select value={tokenizer1} onChange={(event) => setTokenizer1(event.target.value)} className="tokenizer-select">
-                            <option value="">Select a tokenizer</option>
-
-                            {tokenizers.map((tokenizer) => (
-                                <option key={tokenizer} value={tokenizer}>
-                                    {tokenizer}
-                                </option>
-                            ))}
-                        </select>
+                        <DropDown
+                            options={tokenizers}
+                            placeholder="Select first tokenizer"
+                            action={(option) => setTokenizer1(option.target.value)}
+                            />
                     </div>
 
                     <div> {/* This is the drop down menu section for the component selecting tokenizer 2*/}
                         <label>Tokenizer 2: </label>
                         {/*This selects a tokenizer and stores it in the tokenizer 2*/}
-                        <select value={tokenizer2} onChange={(event) => setTokenizer2(event.target.value)} className="tokenizer-select">
-                            <option value="">Select a tokenizer</option>
-
-                            {tokenizers.map((tokenizer) => (
-                                <option key={tokenizer} value={tokenizer}>
-                                    {tokenizer}
-                                </option>
-                            ))}
-                        </select>
+                        <DropDown
+                            options={tokenizers}
+                            placeholder="Select second tokenizer"
+                            action={(option) => setTokenizer2(option.target.value)}
+                        />
                     </div>
                     <div>{/* This is the drop down menu section for the component selecting language*/}
                         <label>Language: </label>
