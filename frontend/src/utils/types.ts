@@ -45,6 +45,12 @@ interface Summary {
   avg_premium: number;
 }
 
+export interface TokenizePreviewMetrics {
+  fertility: number;
+  compression: number;
+  token_count: number;
+}
+
 export type ModelSummary = Summary & { model_id: string };
 
 export type LanguageSummary = Summary & {language: string};
