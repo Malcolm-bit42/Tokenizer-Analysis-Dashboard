@@ -6193,5 +6193,110 @@
         "f1": 0.1891
       }
     }
+  },
+  "google/bert_uncased_L-4_H-256_A-4": {
+    "efficiency": {
+      "Afrikaans": {
+        "token_count": 48422,
+        "fertility": 2.1847139505504423,
+        "compression": 2.776093511213911,
+        "token_premium": 1.8856653296467931
+      },
+      "English": {
+        "token_count": 25679,
+        "fertility": 1.2254939391047055,
+        "compression": 4.879084076482729,
+        "token_premium": 1.0
+      },
+      "Northern Sotho": {
+        "token_count": 54091,
+        "fertility": 1.977299312765024,
+        "compression": 2.7331718770220554,
+        "token_premium": 2.1064293780910472
+      },
+      "Southern Sotho": {
+        "token_count": 57786,
+        "fertility": 2.090060763888889,
+        "compression": 2.6249783684629495,
+        "token_premium": 2.2503212741929204
+      },
+      "Swati": {
+        "token_count": 55862,
+        "fertility": 3.722892369210263,
+        "compression": 2.521732125595217,
+        "token_premium": 2.175396238171268
+      },
+      "Tswana": {
+        "token_count": 59787,
+        "fertility": 1.9881946060988993,
+        "compression": 2.642597889173232,
+        "token_premium": 2.3282448693484947
+      },
+      "Tsonga": {
+        "token_count": 58127,
+        "fertility": 2.2501064529864903,
+        "compression": 2.600701911332083,
+        "token_premium": 2.263600607500292
+      },
+      "Xhosa": {
+        "token_count": 54538,
+        "fertility": 3.6235466081987906,
+        "compression": 2.4552055447577836,
+        "token_premium": 2.1238365979983644
+      },
+      "Zulu": {
+        "token_count": 56964,
+        "fertility": 3.783223749750946,
+        "compression": 2.467839337125202,
+        "token_premium": 2.2183106818801357
+      }
+    },
+    "linguistic": {
+      "Isindebele": {
+        "precision": 0.2762,
+        "recall": 0.3737,
+        "f1": 0.3032
+      },
+      "Northern Sotho": {
+        "precision": 0.232,
+        "recall": 0.3025,
+        "f1": 0.2395
+      },
+      "Southern Sotho": {
+        "precision": 0.2089,
+        "recall": 0.2759,
+        "f1": 0.2174
+      },
+      "Swati": {
+        "precision": 0.2873,
+        "recall": 0.3613,
+        "f1": 0.307
+      },
+      "Tswana": {
+        "precision": 0.1951,
+        "recall": 0.2716,
+        "f1": 0.2063
+      },
+      "Tsonga": {
+        "precision": 0.1295,
+        "recall": 0.248,
+        "f1": 0.1598
+      },
+      "Venda": {
+        "precision": 0.1447,
+        "recall": 0.2277,
+        "f1": 0.162
+      },
+      "Xhosa": {
+        "precision": 0.3058,
+        "recall": 0.3822,
+        "f1": 0.3248
+      },
+      "Zulu": {
+        "precision": 0.3011,
+        "recall": 0.3801,
+        "f1": 0.323
+      }
+    }
   }
 }
