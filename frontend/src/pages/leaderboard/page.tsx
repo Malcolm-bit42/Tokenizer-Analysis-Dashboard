@@ -195,13 +195,9 @@ export default function Compare () {
     }
 
 
-    const activeMetrics = view === "Tokenizer"
-        ? (selectedLanguages.length > 0 ? filteredMetrics : metrics)
-        : langaugeMetrics;
+    const activeMetrics = view === "Tokenizer" ? (selectedLanguages.length > 0 ? filteredMetrics : metrics) : langaugeMetrics;
 
-    const displayData = [...activeMetrics]
-        .filter((m) => view === "Tokenizer" ? addedTokenisers.includes(m.model_id) : true)
-        .sort((a, b) => {
+    const displayData = [...activeMetrics].filter((m) => view === "Tokenizer" ? addedTokenisers.includes(m.model_id) : true).sort((a, b) => {
 
             if (sortBy === "model_id") {
                 return sortDirection === "asc" ? a.model_id.localeCompare(b.model_id) : b.model_id.localeCompare(a.model_id);
@@ -331,10 +327,7 @@ export default function Compare () {
                     <div className={`bg-[#EBE9E4] rounded-lg p-3 mb-6 ${view === "Language" && "pointer-events-none opacity-[50%]"}`}>
                         <div className="flex items-center justify-between mb-3">
                             <p className="section-label !font-bold !text-[#000] !text-[13px]">
-                                {selectedLanguages.length > 0
-                                    ? `Filtered by ${selectedLanguages.length} language${selectedLanguages.length > 1 ? 's' : ''}`
-                                    : 'Showing averages across all languages'
-                                }
+                                { selectedLanguages.length > 0? `Filtered by ${selectedLanguages.length} language${selectedLanguages.length > 1 ? 's' : ''}`: 'Showing averages across all languages' }
                             </p>
                             <div className="flex items-center gap-3">
                                 {isFiltering && <span className="text-xs text-muted animate-pulse">Recomputing…</span>}
@@ -349,15 +342,7 @@ export default function Compare () {
                             {languages.map(lang => {
                                 const isSelected = selectedLanguages.includes(lang);
                                 return (
-                                    <button
-                                        key={lang}
-                                        onClick={() => isSelected ? handleRemoveLanguage(lang) : handleAddLanguage(lang)}
-                                        className={`text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-                                            isSelected
-                                                ? 'bg-[#000] text-white border-[#000]'
-                                                : 'bg-white/60 text-charcoal border-[#ccc] hover:border-[#000]'
-                                        }`}
-                                    >
+                                    <button key={lang} onClick={() => isSelected ? handleRemoveLanguage(lang) : handleAddLanguage(lang)} className={`text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all cursor-pointer ${ isSelected? 'bg-[#000] text-white border-[#000]': 'bg-white/60 text-charcoal border-[#ccc] hover:border-[#000]' }`}>
                                         {lang}
                                     </button>
                                 );
