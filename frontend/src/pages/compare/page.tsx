@@ -5,7 +5,7 @@ import { getMetrics } from "../../api/api"
 import type { languages_t, metric_t } from "../../utils/types";
 import "./style.css";
 import {ScatterChart, Scatter,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer} from "recharts";
-import { DropDown } from "../../components/DropDown";
+import { DropDown } from "../../components/dropdown.tsx";
 
 //default language corpora sentences when language is selected
 const defaultSentences: Record<string, string> = {
@@ -119,8 +119,13 @@ export default function Compare() {
         //The time out is too prevent tokenizing everytime you make quick minor changes to the user text area
         const timer = setTimeout(async () => {
             const data = await getTokenizedText(tokenizer1, tokenizer2, textToTokenize);
+            try{
             setTokenizedText1(data.data1.tokens);
             setTokenizedText2(data.data2.tokens);
+            }
+            catch(error){
+                 console.error("Failed to gtokenize text")
+            }
         }, 400);
         return () => clearTimeout(timer);
 
