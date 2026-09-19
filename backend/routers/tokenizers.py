@@ -159,14 +159,26 @@ def get_languages():
         raise HTTPException(status_code=400, detail="There was an error fetching the languages.")
 
 @router.get("/summary/models")
-def get_summary():
+def get_summary(languages: str = None):
     try:
         cached_data = read_cache()
         summary = []
 
+        # Parse the optional languages filter
+        target_languages = None
+        if languages:
+            target_languages = [lang.strip() for lang in languages.split(",") if lang.strip()]
+            if not target_languages:
+                target_languages = None
+
         for key, val in cached_data.items():
             efficieny_data = val.get("efficiency", {})
             linguistic_data = val.get("linguistic", {})
+
+            # Filter by selected languages if provided
+            if target_languages:
+                efficieny_data = {lang: data for lang, data in efficieny_data.items() if lang in target_languages}
+                linguistic_data = {lang: data for lang, data in linguistic_data.items() if lang in target_languages}
 
             # efficienccy
             fertilities = []

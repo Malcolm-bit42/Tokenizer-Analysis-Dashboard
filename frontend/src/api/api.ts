@@ -70,9 +70,15 @@ export async function tokeniseText(model_id: string, text: string): Promise<Toke
 
 }
 
-export async function getModelSummary(): Promise<ModelSummary | any> {
+export async function getModelSummary(languages?: string[]): Promise<ModelSummary | any> {
 
-    const res = await fetch(`${BASE_URL}/tokenizer/summary/models`);
+    const params = new URLSearchParams();
+    if (languages && languages.length > 0) {
+        params.set('languages', languages.join(','));
+    }
+
+    const query = params.toString();
+    const res = await fetch(`${BASE_URL}/tokenizer/summary/models${query ? `?${query}` : ''}`);
 
     if (!res.ok) throw new Error(await extractErrorDetail(res, 'Failed to fetch model summary'));
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { getLanguages, getLanguageSummary, getMetrics, getModelSummary, getTokenizers } from "../../api/api";
+import { getLanguages, getLanguageSummary, getModelSummary, getTokenizers, getMetrics } from "../../api/api";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
 import type { LanguageSummary, ModelSummary } from "../../utils/types";
@@ -9,6 +9,7 @@ import { LeaderBoardSkeleton } from "./leaderboard-skeleton";
 
 const KEY:string = "tad-selected-models";
 const HIDDEN_METRICS_KEY: string = "tad-hidden-metrics";
+const SELECTED_LANGS_KEY: string = "tad-selected-languages";
 export type metric_t =  "avg_tokens" | "avg_fertility" | "avg_compression" | "avg_f1" | "avg_precision" | "avg_recall" | "avg_premium";
 
 
@@ -39,6 +40,19 @@ function saveHiddenMetrics(metrics: metric_t[]): void {
     localStorage.setItem(HIDDEN_METRICS_KEY, JSON.stringify(metrics));
 }
 
+function loadSavedLanguages(): string[] {
+    try {
+        const saved = localStorage.getItem(SELECTED_LANGS_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveSelectedLanguages(langs: string[]): void {
+    localStorage.setItem(SELECTED_LANGS_KEY, JSON.stringify(langs));
+}
+
 const availableMetrics: { id: metric_t, label: string }[] = [
     {id: "avg_tokens", label: "Avg. Tokens"},
     { id: "avg_fertility", label: "Avg. Fertility" },
@@ -54,10 +68,14 @@ export default function Compare () {
     const [hiddenMetrics, setHiddenMetrics] = useState<metric_t[]>(loadHiddenMetrics);
     const [metrics, setMetrics] = useState<ModelSummary[]>([]);
     const [addedTokenisers, setAddedTokenisers] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState<metric_t | "model_id" | "language">("avg_fertility");
-    const [sortDirection, setSortDirection] = useState<"asc" |"desc">("asc");
+    const [sortBy, setSortBy] = useState<metric_t | "model_id" | "language">("avg_tokens");
+    const [sortDirection, setSortDirection] = useState<"asc" |"desc">("desc");
     const [selectedTokenizer, setSelectedTokenizer] = useState<string>("");
-    const [ _, setLanguages ] = useState<any[]>([]);
+    const [languages, setLanguages] = useState<string[]>([]);
+    const [selectedLanguages, setSelectedLanguages] = useState<string[]>(loadSavedLanguages);
+    const [filteredMetrics, setFilteredMetrics] = useState<ModelSummary[]>([]);
+    const [isFiltering, setIsFiltering] = useState<boolean>(false);
+
     const [langaugeMetrics, setLanguageMetrics] = useState<LanguageSummary[] | any>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isComputing, setIsComputing] = useState<boolean>(false);
@@ -84,7 +102,8 @@ export default function Compare () {
         }
 
         // 3. Process and batch Languages
-        setLanguages(Object.values(languagesData));
+        const langNames = Object.values(languagesData) as string[];
+        setLanguages(langNames);
 
         // 4. Process and batch Model Summaries
         setMetrics(modelSummaryData);
@@ -112,6 +131,50 @@ export default function Compare () {
         fetchInitialData();
     }, []);
 
+    // Re-fetch model summaries filtered by selected languages
+    const fetchFilteredSummaries = async (langs: string[]) => {
+        if (langs.length === 0) {
+            setFilteredMetrics([]);
+            return;
+        }
+
+        setIsFiltering(true);
+        try {
+            const filtered = await getModelSummary(langs);
+            setFilteredMetrics(filtered);
+        } catch (err) {
+            console.error("Failed to fetch filtered summaries:", err);
+        } finally {
+            setIsFiltering(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedLanguages.length > 0 && view === "Tokenizer") {
+            fetchFilteredSummaries(selectedLanguages);
+        } else {
+            setFilteredMetrics([]);
+        }
+    }, [selectedLanguages, view]);
+
+    const handleAddLanguage = (lang: string) => {
+        if (!lang || selectedLanguages.includes(lang)) return;
+        const next = [...selectedLanguages, lang];
+        setSelectedLanguages(next);
+        saveSelectedLanguages(next);
+    };
+
+    const handleRemoveLanguage = (lang: string) => {
+        const next = selectedLanguages.filter(l => l !== lang);
+        setSelectedLanguages(next);
+        saveSelectedLanguages(next);
+    };
+
+    const handleClearLanguages = () => {
+        setSelectedLanguages([]);
+        saveSelectedLanguages([]);
+    };
+
     const tableColumns: string[] = ["#", view, ...availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map(m => m.label), ""];
 
     const toggleMetric = (metricId: metric_t) => {
@@ -132,9 +195,14 @@ export default function Compare () {
     }
 
 
-    const displayData = [...(view === "Tokenizer" ? metrics : langaugeMetrics)]
+    const activeMetrics = view === "Tokenizer"
+        ? (selectedLanguages.length > 0 ? filteredMetrics : metrics)
+        : langaugeMetrics;
+
+    const displayData = [...activeMetrics]
         .filter((m) => view === "Tokenizer" ? addedTokenisers.includes(m.model_id) : true)
         .sort((a, b) => {
+
             if (sortBy === "model_id") {
                 return sortDirection === "asc" ? a.model_id.localeCompare(b.model_id) : b.model_id.localeCompare(a.model_id);
             } else if (sortBy === "language") return sortDirection === "asc" ? a.language.localeCompare(b.language) : b.language.localeCompare(a.language);
@@ -257,6 +325,46 @@ export default function Compare () {
                     {/* <Button action={() =>  view == "Language" ? setView("Tokenizer") : setView("Language")} text={view} /> */}
                    
                 </div>
+
+                {/* Language filter — visible in Tokenizer mode only */}
+
+                    <div className={`bg-[#EBE9E4] rounded-lg p-3 mb-6 ${view === "Language" && "pointer-events-none opacity-[50%]"}`}>
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="section-label !font-bold !text-[#000] !text-[13px]">
+                                {selectedLanguages.length > 0
+                                    ? `Filtered by ${selectedLanguages.length} language${selectedLanguages.length > 1 ? 's' : ''}`
+                                    : 'Showing averages across all languages'
+                                }
+                            </p>
+                            <div className="flex items-center gap-3">
+                                {isFiltering && <span className="text-xs text-muted animate-pulse">Recomputing…</span>}
+                                {selectedLanguages.length > 0 && (
+                                    <button onClick={handleClearLanguages} className="text-xs text-muted hover:text-[#000] transition-colors cursor-pointer underline">
+                                        Clear all
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {languages.map(lang => {
+                                const isSelected = selectedLanguages.includes(lang);
+                                return (
+                                    <button
+                                        key={lang}
+                                        onClick={() => isSelected ? handleRemoveLanguage(lang) : handleAddLanguage(lang)}
+                                        className={`text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                                            isSelected
+                                                ? 'bg-[#000] text-white border-[#000]'
+                                                : 'bg-white/60 text-charcoal border-[#ccc] hover:border-[#000]'
+                                        }`}
+                                    >
+                                        {lang}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                 <div className="flex gap-5 mb-10">
                     {
                         availableMetrics.map(metric => (
@@ -311,10 +419,10 @@ export default function Compare () {
                                             <td className="p-3 font-bold">{data.model_id}</td>
                                             {
                                                 availableMetrics.filter(m => !hiddenMetrics.includes(m.id)).map((metric) => (
-                                                        <td key={metric.id} className="p-3 text-center">
-                                                            {data[metric.id as keyof ModelSummary] as string}
-                                                        </td>
-                                                    ))
+                                                    <td key={metric.id} className="p-3 text-center">
+                                                        {data[metric.id as keyof ModelSummary] as string}
+                                                    </td>
+                                                ))
                                             }
                                             <td className="py-3 px-0">
                                                 <button onClick={() => handleRemoveTokenizer(data)} className="hover:text-red-500 font-bold px-2 py-1 rounded cursor-pointer">
