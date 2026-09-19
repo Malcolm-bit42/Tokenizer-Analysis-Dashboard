@@ -8,10 +8,10 @@
   border: 1px solid var(--color-soft-border, #e4dff5);
   background: var(--color-canvas, #f6f3ff);
   padding: 0;
-  width: 15px;
-  height: 15px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  font-size: 0.68rem;
+  font-size: 0.60rem;
   line-height: 1;
   color: var(--color-muted, #726d8a);
   display: inline-flex;

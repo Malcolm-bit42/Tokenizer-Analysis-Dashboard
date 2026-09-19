@@ -50,8 +50,11 @@ def write_cache(data: dict):
 @router.get("/")
 def read_tokenizers():
     try:
-        t = tokenizer_registry.get_all_tokenizers()
-        return {"tokenizers": t}
+        t = set(tokenizer_registry.get_all_tokenizers())
+        # Merge in any models that have been dynamically computed and cached
+        cached = read_cache()
+        t.update(cached.keys())
+        return {"tokenizers": sorted(t)}
     except Exception as e:
         logger.error(f"Failed to list tokenizers: {e}")
         raise HTTPException(status_code=500, detail="Could not retrieve the list of available tokenizers.")
@@ -269,3 +272,17 @@ def get_language_summary():
     except Exception as e:
         logger.error(f"Failed to build language summary: {e}")
         raise HTTPException(status_code=500, detail="Could not generate language summary.")
+    
+@router.get("/random_sentence")
+def get_random_sentence(language: str):
+    if language not in flores_data:
+        raise HTTPException(status_code=404, detail=f"No sentence data found for language '{language}'")
+
+    sentences = flores_data[language]
+    if not sentences:
+        raise HTTPException(status_code=404, detail=f"No sentences available for '{language}'")
+
+    return {
+        "text": random.choice(sentences),
+        "language": language
+    }

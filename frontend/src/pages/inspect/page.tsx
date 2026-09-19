@@ -69,6 +69,40 @@ function MetricBar({
     );
 }
 
+
+function PremiumGauge({
+    value,
+    description,
+}: {
+    value: number;
+    description?: string;
+}) {
+    const CAP = 3;
+    const width = Math.max(0, Math.min(100, ((value - 1) / (CAP - 1)) * 100));
+    const color =
+        value <= 1.2 ? "var(--color-good)" : value <= 2 ? "var(--color-warn)" : "var(--color-bad)";
+
+    return (
+        <div className="flex flex-col gap-1">
+            <span className="text-[11px] text-muted flex items-center">
+                Premium
+                {description && <MetricInfo description={description} />}
+            </span>
+            <div className="flex items-center gap-2">
+                <div className="w-16 h-1.5 bg-soft-border rounded-pill overflow-hidden">
+                    <span
+                        className="block h-full rounded-pill transition-base"
+                        style={{ width: `${width}%`, backgroundColor: color }}
+                    />
+                </div>
+                <b className="text-xs font-bold" style={{ color }}>
+                    {value.toFixed(2)}×
+                </b>
+            </div>
+        </div>
+    );
+}
+
 export default function Inpsect() {
     // ─── Tokenizer dropdown state ───
     const [tokenizers, setTokenizers] = useState<string[]>([]);
@@ -204,34 +238,38 @@ export default function Inpsect() {
             </div>
 
             {/* ─── Language row ─── */}
+
             <div className="flex flex-col gap-3">
                 <p className="section-label">Languages</p>
 
                 {loading ? (
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-nowrap gap-3">
                         {Array.from({ length: 8 }).map((_, i) => (
                             <div key={i} className="skeleton h-[38px] w-[110px]" />
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-wrap gap-3">
-                        {Object.entries(languages).map(([code, name]) => {
-                            const isActive = selectedLanguages.includes(code);
-                            return (
-                                <button
-                                    key={code}
-                                    type="button"
-                                    onClick={() => toggleLanguage(code)}
-                                    className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-pill border transition-base cursor-pointer ${
-                                        isActive
-                                            ? "bg-charcoal text-panel border-charcoal"
-                                            : "bg-panel text-muted border-soft-border hover:border-strong-border"
-                                    }`}
-                                >
-                                    {name}
-                                </button>
-                            );
-                        })}
+                    <div className="w-fit border border-soft-border rounded-xl bg-panel p-3">
+                        <div className="flex flex-nowrap gap-3">
+                            {Object.entries(languages).map(([code, name]) => {
+                                const isActive = selectedLanguages.includes(code);
+
+                                return (
+                                    <button
+                                        key={code}
+                                        type="button"
+                                        onClick={() => toggleLanguage(code)}
+                                        className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-pill border transition-base cursor-pointer ${
+                                            isActive
+                                                ? "bg-charcoal text-panel border-charcoal"
+                                                : "bg-panel text-muted border-soft-border hover:border-strong-border"
+                                        }`}
+                                    >
+                                        {name}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>
@@ -280,7 +318,7 @@ export default function Inpsect() {
                                                     <p className="text-[11px] font-mono uppercase tracking-wide text-muted">
                                                         Efficiency
                                                     </p>
-                                                    <div className="flex items-center gap-4">
+                                                    <div className="flex items-start gap-4">
                                                         <MetricRing
                                                             value={efficiency.fertility}
                                                             label="fertility"
@@ -293,15 +331,19 @@ export default function Inpsect() {
                                                             description={METRIC_INFO.compression}
                                                             max={Math.max(1, efficiency.compression)}
                                                         />
-                                                        <div className="flex flex-col gap-0.5 text-xs">
-                                                            <b className="text-charcoal">{efficiency.token_count.toLocaleString()}</b>
-                                                            <span className="text-muted flex items-center">
-                                                                tokens<MetricInfo description={METRIC_INFO.token_count} />
-                                                            </span>
-                                                            <em className="text-muted not-italic flex items-center">
-                                                                premium {efficiency.token_premium.toFixed(2)}
-                                                                <MetricInfo description={METRIC_INFO.token_premium} />
-                                                            </em>
+                                                        <div className="flex flex-col gap-3">
+                                                            <div className="flex flex-col leading-none">
+                                                                <b className="text-2xl font-bold text-charcoal">
+                                                                    {efficiency.token_count.toLocaleString()}
+                                                                </b>
+                                                                <span className="text-muted text-xs flex items-center mt-1">
+                                                                    tokens<MetricInfo description={METRIC_INFO.token_count} />
+                                                                </span>
+                                                            </div>
+                                                            <PremiumGauge
+                                                                value={efficiency.token_premium}
+                                                                description={METRIC_INFO.token_premium}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
