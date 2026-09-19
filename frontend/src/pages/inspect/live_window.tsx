@@ -6,7 +6,7 @@ import { MetricInfo } from "../metricinfo";
 import { DropDown } from "../../components/dropdown";
 import { Button } from "../../components/button";
 
-const MAX_UPLOAD_BYTES = 3 * 1024 * 1024; // 3MB
+const MAX_UPLOAD_BYTES = 5 * 1024; // 5KB
 
 interface LiveWindowProps {
     tokenizers: string[];
