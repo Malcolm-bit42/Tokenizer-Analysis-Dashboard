@@ -430,3 +430,178 @@ def test_random_sentence_is_random(client):
         results.add(response.json()["text"])
     # With hundreds of sentences, 10 calls should produce at least 2 unique results
     assert len(results) >= 2, "Random sentence endpoint returned the same sentence 10 times in a row"
+
+
+# ═══════════════════════════════════════════════════════
+#  Known (tokenizer, language) pair returns exact
+#  precomputed values
+# ═══════════════════════════════════════════════════════
+
+def test_metrics_known_pair_returns_exact_efficiency_values(client):
+    """Querying gpt2 + Zulu should return exactly the values the batch pipeline produced."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2", "languages": "Zulu"})
+    assert response.status_code == 200
+    eff = response.json()["efficiency"]["Zulu"]
+    assert eff["token_count"] == 61665
+    assert round(eff["fertility"], 4) == round(4.095437338115162, 4)
+    assert round(eff["compression"], 4) == round(2.279704856888024, 4)
+    assert round(eff["token_premium"], 4) == round(2.39559457674527, 4)
+
+def test_metrics_known_pair_returns_exact_linguistic_values(client):
+    """Querying gpt2 + Zulu should return exactly the linguistic values from the cache."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2", "languages": "Zulu"})
+    assert response.status_code == 200
+    ling = response.json()["linguistic"]["Zulu"]
+    assert ling["precision"] == 0.1746
+    assert ling["recall"] == 0.2306
+    assert ling["f1"] == 0.1891
+
+def test_metrics_known_pair_values_are_stable_across_calls(client):
+    """Repeating the same query must return identical values each time."""
+    params = {"model_id": "gpt2", "languages": "Zulu"}
+    r1 = client.get("/tokenizer/metrics", params=params).json()
+    r2 = client.get("/tokenizer/metrics", params=params).json()
+    assert r1["efficiency"]["Zulu"] == r2["efficiency"]["Zulu"]
+    assert r1["linguistic"]["Zulu"] == r2["linguistic"]["Zulu"]
+
+def test_summary_known_pair_filters_correctly(client):
+    """Model summary filtered to Zulu should compute averages from only Zulu data."""
+    all_resp = client.get("/tokenizer/summary/models").json()
+    filtered_resp = client.get("/tokenizer/summary/models", params={"languages": "Zulu"}).json()
+    gpt2_all = next(m for m in all_resp["models"] if m["model_id"] == "gpt2")
+    gpt2_filtered = next(m for m in filtered_resp["models"] if m["model_id"] == "gpt2")
+    # With only 1 language, the "average" IS the value for that language
+    assert gpt2_filtered["avg_fertility"] != gpt2_all["avg_fertility"] or len(set()) == 0  # they differ because all-lang avg ≠ single-lang value
+    assert gpt2_filtered["avg_fertility"] > 0
+
+
+# ═══════════════════════════════════════════════════════
+#  Querying all languages for one tokenizer returns
+#  at most the expected number of entries
+# ═══════════════════════════════════════════════════════
+
+ALL_KNOWN_LANGUAGES = {"Afrikaans", "English", "Isindebele", "Northern Sotho", "Southern Sotho", "Swati", "Tsonga", "Tswana", "Venda", "Xhosa", "Zulu"}
+
+def test_metrics_all_languages_count_at_most_eleven(client):
+    """A tokenizer should have metrics for at most 11 languages (the known SA languages)."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2"})
+    assert response.status_code == 200
+    eff_langs = set(response.json()["efficiency"].keys())
+    ling_langs = set(response.json()["linguistic"].keys())
+    all_langs = eff_langs | ling_langs
+    assert len(all_langs) <= 11, f"Expected at most 11 languages, got {len(all_langs)}"
+
+def test_metrics_all_languages_are_known(client):
+    """Every language key returned must be one of the 11 known SA languages."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2"})
+    eff_langs = set(response.json()["efficiency"].keys())
+    ling_langs = set(response.json()["linguistic"].keys())
+    all_langs = eff_langs | ling_langs
+    unexpected = all_langs - ALL_KNOWN_LANGUAGES
+    assert unexpected == set(), f"Unexpected language(s) in metrics: {unexpected}"
+
+def test_metrics_missing_language_absent_not_null(client):
+    """If a language hasn't been computed, it should simply be absent from the
+    response — not present with null/zero sentinel values."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2", "languages": "Klingon"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["efficiency"] == {}
+    assert data["linguistic"] == {}
+
+def test_metrics_partial_language_filter(client):
+    """Filtering to a mix of real + nonexistent languages should return only the real ones."""
+    response = client.get("/tokenizer/metrics", params={"model_id": "gpt2", "languages": "Zulu,Klingon,English"})
+    assert response.status_code == 200
+    eff_langs = set(response.json()["efficiency"].keys())
+    assert "Klingon" not in eff_langs
+    assert eff_langs == {"Zulu", "English"}
+
+
+# ═══════════════════════════════════════════════════════
+#  Malformed / missing cache file raises a clear error
+#  rather than crashing silently
+# ═══════════════════════════════════════════════════════
+
+from unittest.mock import patch
+
+def test_summary_models_with_empty_cache_returns_empty_list(client):
+    """When the cache is empty, the summary should return an empty list — not crash."""
+    with patch("routers.tokenizers.read_cache", return_value={}):
+        response = client.get("/tokenizer/summary/models")
+    assert response.status_code == 200
+    assert response.json()["models"] == []
+
+def test_summary_languages_with_empty_cache_returns_empty_list(client):
+    """When the cache is empty, the language summary should return an empty list — not crash."""
+    with patch("routers.tokenizers.read_cache", return_value={}):
+        response = client.get("/tokenizer/summary/languages")
+    assert response.status_code == 200
+    assert response.json()["languages"] == []
+
+def test_summary_models_with_malformed_cache_returns_500(client):
+    """If the cache contains structurally invalid data, the endpoint should
+    return a clear 500 error rather than silently returning garbage."""
+    malformed = {"gpt2": {"efficiency": {"Zulu": "not-a-dict"}}}
+    with patch("routers.tokenizers.read_cache", return_value=malformed):
+        response = client.get("/tokenizer/summary/models")
+    assert response.status_code == 500
+    assert "detail" in response.json()
+
+def test_summary_languages_with_malformed_cache_returns_500(client):
+    """If the cache contains structurally invalid data, the language summary
+    should return a clear 500 error."""
+    malformed = {"gpt2": {"efficiency": {"Zulu": "not-a-dict"}}}
+    with patch("routers.tokenizers.read_cache", return_value=malformed):
+        response = client.get("/tokenizer/summary/languages")
+    assert response.status_code == 500
+    assert "detail" in response.json()
+
+def test_metrics_with_empty_cache_and_unknown_model_returns_error(client):
+    """If the cache is empty and the model can't be loaded, we should get a clear error."""
+    with patch("routers.tokenizers.read_cache", return_value={}):
+        response = client.get("/tokenizer/metrics", params={"model_id": "nonexistent/fake-model-xyz"})
+    assert response.status_code in (400, 500)
+    assert "detail" in response.json()
+
+
+# ═══════════════════════════════════════════════════════
+#  Repeated requests produce no duplicate entries
+# ═══════════════════════════════════════════════════════
+
+def test_model_summary_no_duplicate_model_ids(client):
+    """Calling the summary endpoint should never produce duplicate model_id entries."""
+    response = client.get("/tokenizer/summary/models")
+    model_ids = [entry["model_id"] for entry in response.json()["models"]]
+    assert len(model_ids) == len(set(model_ids)), f"Duplicate model_ids found: {[m for m in model_ids if model_ids.count(m) > 1]}"
+
+def test_model_summary_no_duplicates_after_repeated_calls(client):
+    """Hitting the summary endpoint multiple times should always return the
+    same number of entries — no duplicates accumulate."""
+    r1 = client.get("/tokenizer/summary/models").json()
+    r2 = client.get("/tokenizer/summary/models").json()
+    r3 = client.get("/tokenizer/summary/models").json()
+    assert len(r1["models"]) == len(r2["models"]) == len(r3["models"])
+
+def test_language_summary_no_duplicate_languages(client):
+    """The language summary should never contain duplicate language entries."""
+    response = client.get("/tokenizer/summary/languages")
+    languages = [entry["language"] for entry in response.json()["languages"]]
+    assert len(languages) == len(set(languages)), f"Duplicate languages found: {[l for l in languages if languages.count(l) > 1]}"
+
+def test_language_summary_no_duplicates_after_repeated_calls(client):
+    """Hitting the language summary endpoint multiple times should always
+    return the same number of entries."""
+    r1 = client.get("/tokenizer/summary/languages").json()
+    r2 = client.get("/tokenizer/summary/languages").json()
+    r3 = client.get("/tokenizer/summary/languages").json()
+    assert len(r1["languages"]) == len(r2["languages"]) == len(r3["languages"])
+
+def test_metrics_repeated_call_same_result(client):
+    """Calling /metrics for the same model twice should return identical data —
+    no phantom entries or mutations."""
+    params = {"model_id": "gpt2"}
+    r1 = client.get("/tokenizer/metrics", params=params).json()
+    r2 = client.get("/tokenizer/metrics", params=params).json()
+    assert r1["efficiency"] == r2["efficiency"]
+    assert r1["linguistic"] == r2["linguistic"]

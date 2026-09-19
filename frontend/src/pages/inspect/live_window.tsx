@@ -142,24 +142,25 @@ export function LiveWindow({ tokenizers, loading, languages, onAddTokenizer }: L
             <p className="section-label">Tokenize Preview</p>
 
             <div className="flex flex-col md:flex-row gap-4">
-                {/* Tokenizer dropdown for this box */}
-                <div className="flex flex-col gap-2 w-full md:w-[280px]">
-                    <DropDown
-                        options={tokenizers}
-                        placeholder="Tokenizer"
-                        action={(e: any) => {
-                            setPreviewTokenizer(e.target.value);
-                            onAddTokenizer(e.target.value);
-                        }}
-                    />
-                </div>
+            {/* <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
+                            Text
+                        </label> */}
 
                 {/* Text input */}
                 <div className="flex flex-col gap-2 w-full">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <label htmlFor="preview-text-input" className="text-xs font-medium text-muted">
-                            Text
-                        </label>
+                    
+                        {/* Tokenizer dropdown for this box */}
+                        <div className="flex flex-col gap-2 w-full md:w-[280px]">
+                            <DropDown
+                                options={tokenizers}
+                                placeholder="Tokenizer"
+                                action={(e: any) => {
+                                    setPreviewTokenizer(e.target.value);
+                                    onAddTokenizer(e.target.value);
+                                }}
+                            />
+                        </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* ─── Random sentence generator ─── */}
