@@ -278,6 +278,12 @@ export default function Inpsect() {
             <div className="flex flex-col gap-3 mt-4">
                 <p className="section-label">Metrics</p>
 
+                {selectedTokenizer && (
+                    <h2 className="text-lg font-bold text-charcoal">
+                        Results for Tokenizer "{selectedTokenizer}"
+                    </h2>
+                )}
+
                 {metricsError && (
                     <p className="text-sm text-bad">
                         {metricsError}
